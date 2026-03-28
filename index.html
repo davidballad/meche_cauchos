@@ -62,6 +62,7 @@
             Panel
           </button>
           <button type="button" class="nav-btn" data-section="catalog">Catálogo</button>
+          <button type="button" class="nav-btn" data-section="transactions">Transacciones</button>
           <button type="button" class="nav-btn" data-section="form">Añadir / Editar</button>
           <button type="button" class="nav-btn" data-section="search">Buscar</button>
         </nav>
@@ -104,6 +105,54 @@
         </div>
         <div id="catalog-grid" class="card-grid"></div>
         <p id="catalog-empty" class="empty-hint" hidden>No hay repuestos registrados.</p>
+      </section>
+
+      <section id="section-transactions" class="section" aria-labelledby="tx-title">
+        <h2 id="tx-title" class="section-title">Transacciones</h2>
+        <p class="section-intro">
+          Registra una venta o salida de stock: se guarda el movimiento y el inventario se actualiza al instante.
+        </p>
+        <form id="transaction-form" class="form-grid tx-form">
+          <div class="form-row">
+            <label for="tx-part">Repuesto *</label>
+            <select id="tx-part" required>
+              <option value="">— Selecciona un repuesto con stock —</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="tx-qty">Cantidad *</label>
+            <input id="tx-qty" type="number" min="1" value="1" required />
+            <span id="tx-stock-hint" class="field-hint" aria-live="polite"></span>
+          </div>
+          <div class="form-row">
+            <label for="tx-notes">Notas (opcional)</label>
+            <input id="tx-notes" type="text" placeholder="Cliente, factura, etc." maxlength="500" />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="tx-submit">Registrar transacción</button>
+          </div>
+        </form>
+        <h3 class="subsection-title">Historial reciente</h3>
+        <div id="transactions-loading" class="section-loading" hidden>
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Cargando transacciones…</span>
+        </div>
+        <div class="tx-table-wrap">
+          <table class="tx-table" id="transactions-table" hidden>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Nº parte</th>
+                <th>Nombre</th>
+                <th>Cant.</th>
+                <th>Total</th>
+                <th>Notas</th>
+              </tr>
+            </thead>
+            <tbody id="transactions-tbody"></tbody>
+          </table>
+        </div>
+        <p id="transactions-empty" class="empty-hint" hidden>No hay transacciones registradas.</p>
       </section>
 
       <section id="section-form" class="section" aria-labelledby="form-title">

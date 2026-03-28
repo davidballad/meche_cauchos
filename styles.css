@@ -151,6 +151,72 @@ main {
   display: inline-block;
 }
 
+.section-intro {
+  margin: -0.35rem 0 1.25rem;
+  color: var(--gray-600);
+  max-width: 52ch;
+}
+
+.subsection-title {
+  margin: 1.75rem 0 0.75rem;
+  font-size: 1.05rem;
+  color: var(--gray-800);
+}
+
+.tx-form {
+  max-width: 520px;
+  background: var(--white);
+  padding: 1.25rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.field-hint {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  margin-top: 0.25rem;
+}
+
+.tx-table-wrap {
+  overflow-x: auto;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-top: 0.5rem;
+}
+
+.tx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tx-table th,
+.tx-table td {
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.tx-table th {
+  background: var(--gray-100);
+  font-weight: 700;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.tx-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tx-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ——— Dashboard ——— */
 .dashboard-grid {
   display: grid;
