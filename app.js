@@ -37,7 +37,7 @@ function formatMoney(n) {
   if (Number.isNaN(num)) return '—';
   return new Intl.NumberFormat('es', {
     style: 'currency',
-    currency: 'EUR',
+    currency: 'USD',
     minimumFractionDigits: 2,
   }).format(num);
 }
