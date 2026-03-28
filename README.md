@@ -93,6 +93,7 @@ La clave **anon** de Supabase está pensada para usarse en el navegador; la segu
 - **Catálogo:** rejilla de tarjetas con datos principales; **Editar** / **Eliminar** (con confirmación antes de borrar).
 - **Añadir / Editar:** formulario alineado con las columnas de `parts`.
 - **Buscar:** filtrado en tiempo real por texto (nombre, número de parte, marca) y desplegables de categoría y marca.
+- **Transacciones:** registrar salidas de stock (ventas); el inventario se reduce con la función `create_transaction_sale` en Supabase.
 
 Durante las peticiones a Supabase verás un **spinner** global; tras guardar o eliminar aparecen **notificaciones** (éxito o error).
 
@@ -105,7 +106,13 @@ Durante las peticiones a Supabase verás un **spinner** global; tras guardar o e
 | `app.js` | Lógica y cliente Supabase (CDN ESM); importa `config.js` al iniciar |
 | `config.js` | Credenciales (local, no versionado) |
 | `config.example.js` | Plantilla para copiar |
-| `supabase_setup.sql` | SQL para crear la tabla y políticas |
+| `supabase_setup.sql` | SQL: `parts`, `transactions`, función `create_transaction_sale` y políticas |
+| `supabase_migration_transactions.sql` | Solo transacciones (si ya tenías `parts` creada) |
+
+## Transacciones (ventas / salida de stock)
+
+1. En Supabase → **SQL Editor**, ejecuta el contenido de [`supabase_migration_transactions.sql`](./supabase_migration_transactions.sql) (o usa el bloque de transacciones dentro de [`supabase_setup.sql`](./supabase_setup.sql) si creas el proyecto desde cero).
+2. En la app, pestaña **Transacciones**: elige repuesto con stock, cantidad y opcionalmente notas; al registrar, se inserta un movimiento y el **stock baja** en la base (función SQL `create_transaction_sale`, bloqueo de fila para evitar condiciones de carrera).
 
 ## Problemas al publicar (GitHub Pages)
 
