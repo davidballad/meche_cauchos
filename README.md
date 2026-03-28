@@ -1,6 +1,6 @@
-# MecheCauchos — Catálogo de repuestos
+# MZCAUCHOS — Catálogo de repuestos
 
-Sitio de una sola página (HTML, CSS y JavaScript sin frameworks ni herramientas de build) para gestionar el inventario de **MecheCauchos**. El backend es [Supabase](https://supabase.com/) (plan gratuito).
+Sitio de una sola página (HTML, CSS y JavaScript sin frameworks ni herramientas de build) para gestionar el inventario de **MZCAUCHOS**. El backend es [Supabase](https://supabase.com/) (plan gratuito).
 
 ## Requisitos previos
 
@@ -50,7 +50,7 @@ Luego visita `http://localhost:8080`.
 ```bash
 git init
 git add .
-git commit -m "Catálogo MecheCauchos con Supabase"
+git commit -m "Catálogo MZCAUCHOS con Supabase"
 git branch -M main
 git remote add origin https://github.com/TU_USUARIO/TU_REPO.git
 git push -u origin main
@@ -123,4 +123,4 @@ Durante las peticiones a Supabase verás un **spinner** global; tras guardar o e
 
 ## Licencia
 
-Uso interno para MecheCauchos; adapta la licencia según tu negocio.
+Uso interno para MZCAUCHOS; adapta la licencia según tu negocio.
