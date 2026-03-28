@@ -2,6 +2,26 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <!-- GitHub Pages: sin barra final en la URL, rutas relativas apuntan al dominio raíz y dan 404. -->
+    <script>
+      (function () {
+        var path = location.pathname;
+        var dir;
+        if (!path || path === '/') {
+          dir = '/';
+        } else if (path.endsWith('/')) {
+          dir = path;
+        } else if (/\.html$/i.test(path)) {
+          dir = path.replace(/[^/]+$/, '');
+        } else {
+          dir = path + '/';
+        }
+        if (dir !== '/' && dir.slice(-1) !== '/') dir += '/';
+        var b = document.createElement('base');
+        b.href = dir;
+        document.currentScript.insertAdjacentElement('afterend', b);
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MecheCauchos — Catálogo de repuestos</title>
     <link rel="stylesheet" href="styles.css" />
@@ -209,9 +229,6 @@
 
     <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-    <script type="module">
-      import './config.js';
-      import './app.js';
-    </script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>

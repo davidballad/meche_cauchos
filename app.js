@@ -1,7 +1,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/+esm';
-import { supabaseUrl, supabaseAnonKey } from './config.js';
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+/** @type {import('@supabase/supabase-js').SupabaseClient | null} */
+let supabase = null;
 
 /** @type {Array<Record<string, unknown>>} */
 let allParts = [];
@@ -54,6 +54,13 @@ function setSectionLoading(sectionId, on) {
   el.hidden = !on;
 }
 
+function clearAllLoadingUI() {
+  setGlobalLoading(false);
+  setSectionLoading('dashboard', false);
+  setSectionLoading('catalog', false);
+  setSectionLoading('search', false);
+}
+
 function showSection(id) {
   $$('.section').forEach((s) => s.classList.toggle('active', s.id === `section-${id}`));
   $$('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.section === id));
@@ -67,32 +74,40 @@ function navigateTo(section) {
 }
 
 async function fetchAllParts() {
+  if (!supabase) {
+    clearAllLoadingUI();
+    return;
+  }
+
   setGlobalLoading(true);
   setSectionLoading('dashboard', true);
   setSectionLoading('catalog', true);
   setSectionLoading('search', true);
 
-  const { data, error } = await supabase
-    .from('parts')
-    .select('*')
-    .order('name', { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from('parts')
+      .select('*')
+      .order('name', { ascending: true });
 
-  setGlobalLoading(false);
-  setSectionLoading('dashboard', false);
-  setSectionLoading('catalog', false);
-  setSectionLoading('search', false);
-
-  if (error) {
-    console.error(error);
-    showToast(`Error al cargar datos: ${error.message}`, 'error');
+    if (error) {
+      console.error(error);
+      showToast(`Error al cargar datos: ${error.message}`, 'error');
+      allParts = [];
+      return;
+    }
+    allParts = data || [];
+    renderDashboard();
+    renderCatalog();
+    populateBrandFilter();
+    renderSearchResults();
+  } catch (err) {
+    console.error(err);
+    showToast(`Error al cargar datos: ${err instanceof Error ? err.message : String(err)}`, 'error');
     allParts = [];
-    return;
+  } finally {
+    clearAllLoadingUI();
   }
-  allParts = data || [];
-  renderDashboard();
-  renderCatalog();
-  populateBrandFilter();
-  renderSearchResults();
 }
 
 function renderDashboard() {
@@ -249,89 +264,122 @@ function startEdit(id) {
 }
 
 async function confirmDelete(p) {
+  if (!supabase) return;
   const ok = window.confirm(
     `¿Eliminar el repuesto "${p.name}" (${p.part_number})? Esta acción no se puede deshacer.`
   );
   if (!ok) return;
 
   setGlobalLoading(true);
-  const { error } = await supabase.from('parts').delete().eq('id', p.id);
-  setGlobalLoading(false);
+  try {
+    const { error } = await supabase.from('parts').delete().eq('id', p.id);
+    if (error) {
+      showToast(`Error al eliminar: ${error.message}`, 'error');
+      return;
+    }
+    showToast('Repuesto eliminado correctamente.');
+    await fetchAllParts();
+  } finally {
+    setGlobalLoading(false);
+  }
+}
 
-  if (error) {
-    showToast(`Error al eliminar: ${error.message}`, 'error');
+function wireEventListeners() {
+  $('#part-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!supabase) return;
+
+    const id = $('#field-id').value.trim();
+    const part_number = $('#field-part_number').value.trim();
+    const name = $('#field-name').value.trim();
+    const category = $('#field-category').value || null;
+    const brand = $('#field-brand').value.trim() || null;
+    const priceRaw = $('#field-price').value;
+    const price = priceRaw === '' ? null : Number(priceRaw);
+    const stock_quantity = parseInt($('#field-stock_quantity').value, 10) || 0;
+    const low_stock_threshold = parseInt($('#field-low_stock_threshold').value, 10) || 0;
+    const description = $('#field-description').value.trim() || null;
+
+    const payload = {
+      part_number,
+      name,
+      category,
+      brand,
+      price,
+      stock_quantity,
+      low_stock_threshold,
+      description,
+    };
+
+    setGlobalLoading(true);
+    try {
+      let error;
+      if (id) {
+        const res = await supabase.from('parts').update(payload).eq('id', id);
+        error = res.error;
+      } else {
+        const res = await supabase.from('parts').insert([payload]);
+        error = res.error;
+      }
+      if (error) {
+        showToast(`Error al guardar: ${error.message}`, 'error');
+        return;
+      }
+      showToast(id ? 'Repuesto actualizado correctamente.' : 'Repuesto creado correctamente.');
+      resetForm();
+      await fetchAllParts();
+      navigateTo('catalog');
+    } finally {
+      setGlobalLoading(false);
+    }
+  });
+
+  $('#form-reset-btn').addEventListener('click', () => resetForm());
+
+  $$('.nav-btn').forEach((btn) => {
+    btn.addEventListener('click', () => navigateTo(btn.dataset.section));
+  });
+
+  $('#brand-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    navigateTo('dashboard');
+  });
+
+  $('#filter-q').addEventListener('input', () => renderSearchResults());
+  $('#filter-category').addEventListener('change', () => renderSearchResults());
+  $('#filter-brand').addEventListener('change', () => renderSearchResults());
+}
+
+async function bootstrap() {
+  let supabaseUrl;
+  let supabaseAnonKey;
+
+  try {
+    const mod = await import('./config.js');
+    supabaseUrl = mod.supabaseUrl;
+    supabaseAnonKey = mod.supabaseAnonKey;
+  } catch (err) {
+    console.error(err);
+    clearAllLoadingUI();
+    showToast(
+      'No se pudo cargar config.js (suele ser un 404). Asegúrate de que exista en el sitio publicado o configura el workflow de GitHub Actions con los secretos SUPABASE_URL y SUPABASE_ANON_KEY.',
+      'error'
+    );
     return;
   }
-  showToast('Repuesto eliminado correctamente.');
+
+  if (!supabaseUrl || !supabaseAnonKey || String(supabaseUrl).includes('TU-PROYECTO')) {
+    clearAllLoadingUI();
+    showToast(
+      'Configura config.js con la URL y la clave anónima de Supabase (copia desde config.example.js).',
+      'error'
+    );
+    return;
+  }
+
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+  wireEventListeners();
   await fetchAllParts();
 }
 
-$('#part-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const id = $('#field-id').value.trim();
-  const part_number = $('#field-part_number').value.trim();
-  const name = $('#field-name').value.trim();
-  const category = $('#field-category').value || null;
-  const brand = $('#field-brand').value.trim() || null;
-  const priceRaw = $('#field-price').value;
-  const price = priceRaw === '' ? null : Number(priceRaw);
-  const stock_quantity = parseInt($('#field-stock_quantity').value, 10) || 0;
-  const low_stock_threshold = parseInt($('#field-low_stock_threshold').value, 10) || 0;
-  const description = $('#field-description').value.trim() || null;
-
-  const payload = {
-    part_number,
-    name,
-    category,
-    brand,
-    price,
-    stock_quantity,
-    low_stock_threshold,
-    description,
-  };
-
-  setGlobalLoading(true);
-  let error;
-  if (id) {
-    const res = await supabase.from('parts').update(payload).eq('id', id);
-    error = res.error;
-  } else {
-    const res = await supabase.from('parts').insert([payload]);
-    error = res.error;
-  }
-  setGlobalLoading(false);
-
-  if (error) {
-    showToast(`Error al guardar: ${error.message}`, 'error');
-    return;
-  }
-  showToast(id ? 'Repuesto actualizado correctamente.' : 'Repuesto creado correctamente.');
-  resetForm();
-  await fetchAllParts();
-  navigateTo('catalog');
-});
-
-$('#form-reset-btn').addEventListener('click', () => resetForm());
-
-$$('.nav-btn').forEach((btn) => {
-  btn.addEventListener('click', () => navigateTo(btn.dataset.section));
-});
-
-$('#brand-link').addEventListener('click', (e) => {
-  e.preventDefault();
-  navigateTo('dashboard');
-});
-
-$('#filter-q').addEventListener('input', () => renderSearchResults());
-$('#filter-category').addEventListener('change', () => renderSearchResults());
-$('#filter-brand').addEventListener('change', () => renderSearchResults());
-
-// Validar que existan credenciales (mensaje claro en consola / toast)
-if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('TU-PROYECTO')) {
-  showToast(
-    'Configura config.js con la URL y la clave anónima de Supabase (copia desde config.example.js).',
-    'error'
-  );
-} else {
-  fetchAllParts();
-}
+bootstrap();
