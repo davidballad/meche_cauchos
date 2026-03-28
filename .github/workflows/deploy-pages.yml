@@ -1,0 +1,34 @@
+# Genera config.js en el runner a partir de secretos del repositorio y publica en gh-pages.
+# Configura en GitHub: Settings → Secrets and variables → Actions
+#   SUPABASE_URL
+#   SUPABASE_ANON_KEY
+# Luego: Settings → Pages → Source: Deploy from branch → gh-pages → / (root)
+
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Crear config.js desde secretos
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          python3 -c "import os; u=os.environ.get('SUPABASE_URL',''); k=os.environ.get('SUPABASE_ANON_KEY',''); assert u and k, 'Faltan SUPABASE_URL o SUPABASE_ANON_KEY en Secrets'; open('config.js','w',encoding='utf-8').write('export const supabaseUrl = %r;\nexport const supabaseAnonKey = %r;\n' % (u,k))"
+
+      - name: Publicar sitio estático en gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          exclude_assets: '.github,README.md,config.example.js,supabase_setup.sql,.gitignore'
