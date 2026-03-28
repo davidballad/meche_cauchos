@@ -1,4 +1,4 @@
--- MZCauchos: tabla de repuestos para el catálogo
+-- MecheCauchos: tabla de repuestos para el catálogo
 -- Ejecutar en Supabase → SQL Editor → New query → Run
 
 create table if not exists public.parts (
