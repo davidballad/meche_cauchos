@@ -38,7 +38,7 @@ function formatMoney(n) {
   return new Intl.NumberFormat('es', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 2,
+    // minimumFractionDigits: 2,
   }).format(num);
 }
 
