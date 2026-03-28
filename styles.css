@@ -213,7 +213,7 @@ main {
 }
 
 .tx-table td.num {
-  text-align: right;
+  text-align: left;
   font-variant-numeric: tabular-nums;
 }
 
