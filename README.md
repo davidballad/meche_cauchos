@@ -102,10 +102,15 @@ Durante las peticiones a Supabase verás un **spinner** global; tras guardar o e
 |--------|-------------|
 | `index.html` | Página única con todas las secciones |
 | `styles.css` | Estilos (rojo `#8B0000`, blanco, grises) |
-| `app.js` | Lógica y cliente Supabase (CDN ESM) |
+| `app.js` | Lógica y cliente Supabase (CDN ESM); importa `config.js` al iniciar |
 | `config.js` | Credenciales (local, no versionado) |
 | `config.example.js` | Plantilla para copiar |
 | `supabase_setup.sql` | SQL para crear la tabla y políticas |
+
+## Problemas al publicar (GitHub Pages)
+
+- **404 en la consola y la app no carga:** En sitios de proyecto (`username.github.io/nombre-repo/`), abrir la URL **sin** barra final hacía que `styles.css`, `app.js` y `config.js` se pidieran a la raíz del dominio y devolvieran 404. El `index.html` incluye un script que ajusta automáticamente la etiqueta `<base href="…">` según la ruta.
+- **Sigue fallando `config.js`:** Ese archivo no va en git si usas `.gitignore`. Debe existir en el sitio publicado: usa el workflow de Actions con los secretos, o añade `config.js` al despliegue de otra forma.
 
 ## Licencia
 
