@@ -118,6 +118,8 @@ Durante las peticiones a Supabase verás un **spinner** global; tras guardar o e
 
 - **404 en la consola y la app no carga:** En sitios de proyecto (`username.github.io/nombre-repo/`), abrir la URL **sin** barra final hacía que `styles.css`, `app.js` y `config.js` se pidieran a la raíz del dominio y devolvieran 404. El `index.html` incluye un script que ajusta automáticamente la etiqueta `<base href="…">` según la ruta.
 - **Sigue fallando `config.js`:** Ese archivo no va en git si usas `.gitignore`. Debe existir en el sitio publicado: usa el workflow de Actions con los secretos, o añade `config.js` al despliegue de otra forma.
+- **El panel se queda en “Cargando datos…”:** No era el texto del HTML sino el CSS: `display: flex` en `.section-loading` anulaba el atributo `hidden`. Está corregido con `.section-loading[hidden] { display: none !important; }`.
+- **`favicon.ico` 404:** El navegador pide un favicon por defecto; el `index` incluye un icono en línea (data URL) para evitar esa petición.
 
 ## Licencia
 

@@ -509,6 +509,11 @@ main {
   }
 }
 
+/* Sin esto, display:flex gana al atributo [hidden] y el spinner nunca desaparece. */
+.section-loading[hidden] {
+  display: none !important;
+}
+
 .section-loading {
   display: flex;
   align-items: center;
