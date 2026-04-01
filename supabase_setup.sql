@@ -11,6 +11,14 @@ create table if not exists public.parts (
   stock_quantity integer not null default 0,
   low_stock_threshold integer not null default 5,
   description text,
+  dimensions text,
+  voltage text,
+  led_count integer,
+  weight_ref integer,
+  features text,
+  lens_colors text[],
+  led_colors text[],
+  image_url text,
   created_at timestamptz not null default now()
 );
 

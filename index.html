@@ -413,8 +413,60 @@
                   />
                 </div>
                 <div class="form-row">
-                  <label for="field-description">Descripción</label>
-                  <textarea id="field-description" name="description" rows="4"></textarea>
+                  <label for="field-description">Descripción corta</label>
+                  <textarea id="field-description" name="description" rows="2"></textarea>
+                </div>
+                <div class="form-group-title">Especificaciones Técnicas (Catálogo)</div>
+                <div class="form-row--grid">
+                  <div class="form-row">
+                    <label for="field-dimensions">Dimensiones (ej: 24 x 5 x 2.4 cm)</label>
+                    <input id="field-dimensions" name="dimensions" type="text" placeholder="Largo x Ancho x Alto" />
+                  </div>
+                  <div class="form-row">
+                    <label for="field-voltage">Voltaje (ej: 12V / 24V)</label>
+                    <input id="field-voltage" name="voltage" type="text" placeholder="Rango de voltaje" />
+                  </div>
+                  <div class="form-row">
+                    <label for="field-led_count">Cantidad de LEDs</label>
+                    <input id="field-led_count" name="led_count" type="number" min="0" />
+                  </div>
+                  <div class="form-row">
+                    <label for="field-weight_ref">Referencia / Peso (Icono báscula)</label>
+                    <input id="field-weight_ref" name="weight_ref" type="number" min="0" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="field-features">Características (una por línea, ej: Soporte ABS Cromado)</label>
+                  <textarea id="field-features" name="features" rows="4" placeholder="Soporte en ABS Cromado&#10;Lente en Policarbonato&#10;Lámpara resinada"></textarea>
+                </div>
+                <div class="form-row checkboxes-group">
+                  <label>Colores de Lente disponibles</label>
+                  <div class="checkboxes-wrap">
+                    <label><input type="checkbox" name="lens_colors" value="Red" /> Rojo</label>
+                    <label><input type="checkbox" name="lens_colors" value="Amber" /> Ámbar</label>
+                    <label><input type="checkbox" name="lens_colors" value="Clear" /> Blanco/Transp.</label>
+                  </div>
+                </div>
+                <div class="form-row checkboxes-group">
+                  <label>Colores de LED disponibles</label>
+                  <div class="checkboxes-wrap">
+                    <label><input type="checkbox" name="led_colors" value="Red" /> Rojo</label>
+                    <label><input type="checkbox" name="led_colors" value="Amber" /> Ámbar</label>
+                    <label><input type="checkbox" name="led_colors" value="White" /> Blanco</label>
+                    <label><input type="checkbox" name="led_colors" value="Blue" /> Azul</label>
+                    <label><input type="checkbox" name="led_colors" value="Green" /> Verde</label>
+                  </div>
+                </div>
+                <div class="form-row image-upload-row">
+                  <label for="field-image">Imagen del producto (Desde tu computador)</label>
+                  <div class="image-upload-controls">
+                    <input id="field-image" type="file" accept="image/*" />
+                    <div id="image-preview-container" class="image-preview-container" hidden>
+                      <img id="image-preview" src="" alt="Vista previa" />
+                      <button type="button" id="remove-image" class="btn btn-sm btn-danger">Quitar</button>
+                    </div>
+                  </div>
+                  <input type="hidden" id="field-image_url" name="image_url" />
                 </div>
                 <div class="form-actions">
                   <button type="submit" class="btn btn-primary" id="form-submit-btn">Guardar</button>

@@ -483,17 +483,58 @@ function buildPartCard(p, { showActions = true } = {}) {
   const low = isLowStock(p);
   const stockClass = low ? 'stock low' : 'stock';
 
+  // Features list
+  const features = (p.features || '').split('\n').filter(f => f.trim() !== '');
+  const featuresHtml = features.length > 0
+    ? `<ul class="features-list">${features.map(f => `<li>${escapeHtml(f)}</li>`).join('')}</ul>`
+    : '';
+
+  // Colors
+  const renderDots = (colors, type) => {
+    if (!colors || colors.length === 0) return '';
+    return `
+      <div class="color-dots-row">
+        <span class="color-dots-label">${type}:</span>
+        ${colors.map(c => `<span class="color-dot ${String(c).toLowerCase()}" title="${escapeHtml(c)}"></span>`).join('')}
+      </div>
+    `;
+  };
+
+  const lensDots = renderDots(p.lens_colors, 'Lente');
+  const ledDots = renderDots(p.led_colors, 'LED');
+
   card.innerHTML = `
-    <div class="part-number">${escapeHtml(String(p.part_number))}</div>
-    <h3>${escapeHtml(String(p.name))}</h3>
-    <div class="meta">${escapeHtml(String(p.brand || '—'))} · ${escapeHtml(String(p.category || '—'))}</div>
-    <div class="price">${formatMoney(p.price)}</div>
-    <div class="${stockClass}">Stock: ${escapeHtml(String(p.stock_quantity ?? 0))}</div>
+    <div class="part-card__image-wrap">
+      ${p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" class="part-card__image" loading="lazy">` : '<div class="part-card__image-placeholder"></div>'}
+      <div class="part-card__badges">
+        ${p.voltage ? `<span class="badge-spec"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> ${escapeHtml(p.voltage)}</span>` : ''}
+        ${p.led_count ? `<span class="badge-spec">${escapeHtml(String(p.led_count))} LEDs</span>` : ''}
+      </div>
+    </div>
+    <div class="part-card__content">
+      <div class="part-card__header">
+        <div class="part-number">${escapeHtml(String(p.part_number))}</div>
+        <div class="price">${formatMoney(p.price)}</div>
+      </div>
+      <h3>${escapeHtml(String(p.name))}</h3>
+      ${p.dimensions ? `<div class="dim-text"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"/></svg> ${escapeHtml(p.dimensions)}</div>` : ''}
+      
+      ${featuresHtml}
+
+      <div class="color-dots-wrap">
+        ${lensDots}
+        ${ledDots}
+      </div>
+
+      <div class="${stockClass}">Stock: ${escapeHtml(String(p.stock_quantity ?? 0))}</div>
+      <div class="meta">${escapeHtml(String(p.brand || '—'))} · ${escapeHtml(String(p.category || '—'))}</div>
+    </div>
+    
     ${
       showActions
-        ? `<div class="part-card-actions">
-        <button type="button" class="btn btn-secondary btn-edit" data-id="${escapeHtml(String(p.id))}">Editar</button>
-        <button type="button" class="btn btn-danger btn-delete" data-id="${escapeHtml(String(p.id))}">Eliminar</button>
+        ? `<div class="part-card-actions" style="padding: 0 1.25rem 1.25rem;">
+        <button type="button" class="btn btn-secondary btn-sm btn-edit" data-id="${escapeHtml(String(p.id))}">Editar</button>
+        <button type="button" class="btn btn-danger btn-sm btn-delete" data-id="${escapeHtml(String(p.id))}">Eliminar</button>
       </div>`
         : ''
     }
@@ -662,6 +703,9 @@ function resetForm() {
   $('#field-id').value = '';
   $('#field-stock_quantity').value = '0';
   $('#field-low_stock_threshold').value = '5';
+  $('#field-image_url').value = '';
+  $('#image-preview-container').hidden = true;
+  $('#image-preview').src = '';
   $('#form-title').textContent = 'Añadir o editar repuesto';
   $('#form-submit-btn').textContent = 'Guardar';
 }
@@ -678,6 +722,30 @@ function startEdit(id) {
   $('#field-stock_quantity').value = String(p.stock_quantity ?? 0);
   $('#field-low_stock_threshold').value = String(p.low_stock_threshold ?? 5);
   $('#field-description').value = String(p.description ?? '');
+  
+  // New fields
+  $('#field-dimensions').value = String(p.dimensions ?? '');
+  $('#field-voltage').value = String(p.voltage ?? '');
+  $('#field-led_count').value = p.led_count != null ? String(p.led_count) : '';
+  $('#field-weight_ref').value = p.weight_ref != null ? String(p.weight_ref) : '';
+  $('#field-features').value = String(p.features ?? '');
+  $('#field-image_url').value = String(p.image_url ?? '');
+
+  if (p.image_url) {
+    $('#image-preview').src = p.image_url;
+    $('#image-preview-container').hidden = false;
+  } else {
+    $('#image-preview-container').hidden = true;
+  }
+
+  // Checkboxes
+  const setCheckboxes = (name, values) => {
+    const boxes = $$(`input[name="${name}"]`);
+    boxes.forEach(b => b.checked = (values || []).includes(b.value));
+  };
+  setCheckboxes('lens_colors', p.lens_colors);
+  setCheckboxes('led_colors', p.led_colors);
+
   $('#form-title').textContent = 'Editar repuesto';
   $('#form-submit-btn').textContent = 'Actualizar';
   openAdminPortal();
@@ -730,19 +798,63 @@ function wireEventListeners() {
     const low_stock_threshold = parseInt($('#field-low_stock_threshold').value, 10) || 0;
     const description = $('#field-description').value.trim() || null;
 
-    const payload = {
-      part_number,
-      name,
-      category,
-      brand,
-      price,
-      stock_quantity,
-      low_stock_threshold,
-      description,
-    };
+    // Technical fields
+    const dimensions = $('#field-dimensions').value.trim() || null;
+    const voltage = $('#field-voltage').value.trim() || null;
+    const led_count = parseInt($('#field-led_count').value, 10) || null;
+    const weight_ref = parseInt($('#field-weight_ref').value, 10) || null;
+    const features = $('#field-features').value.trim() || null;
+    let image_url = $('#field-image_url').value.trim() || null;
+
+    const lens_colors = $$('input[name="lens_colors"]:checked').map(b => b.value);
+    const led_colors = $$('input[name="led_colors"]:checked').map(b => b.value);
 
     setGlobalLoading(true);
     try {
+      // 1. Handle Image Upload if needed
+      const fileInput = $('#field-image');
+      if (fileInput.files && fileInput.files[0]) {
+        const file = fileInput.files[0];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const filePath = `parts/${fileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('parts-images')
+          .upload(filePath, file);
+
+        if (uploadError) {
+          showToast(`Error al subir imagen: ${uploadError.message}`, 'error');
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('parts-images')
+          .getPublicUrl(filePath);
+        
+        image_url = publicUrl;
+      }
+
+      // 2. Prepare Payload
+      const payload = {
+        part_number,
+        name,
+        category,
+        brand,
+        price,
+        stock_quantity,
+        low_stock_threshold,
+        description,
+        dimensions,
+        voltage,
+        led_count,
+        weight_ref,
+        features,
+        lens_colors,
+        led_colors,
+        image_url,
+      };
+
       let error;
       if (id) {
         const res = await supabase.from('parts').update(payload).eq('id', id);
@@ -762,6 +874,26 @@ function wireEventListeners() {
     } finally {
       setGlobalLoading(false);
     }
+  });
+
+  // Image handling events
+  $('#field-image').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        $('#image-preview').src = ev.target.result;
+        $('#image-preview-container').hidden = false;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  $('#remove-image').addEventListener('click', () => {
+    $('#field-image').value = '';
+    $('#field-image_url').value = '';
+    $('#image-preview-container').hidden = true;
+    $('#image-preview').src = '';
   });
 
   $('#form-reset-btn').addEventListener('click', () => resetForm());
