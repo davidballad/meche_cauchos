@@ -13,7 +13,15 @@ Sitio de una sola página (HTML, CSS y JavaScript sin frameworks ni herramientas
 2. Cuando el proyecto esté listo, abre el menú **SQL Editor**.
 3. Crea una nueva consulta, pega el contenido completo de [`supabase_setup.sql`](./supabase_setup.sql) y pulsa **Run**.
 
-Esto crea la tabla `parts` con las columnas indicadas, índices y políticas RLS que permiten al cliente web (clave **anon**) leer e insertar/actualizar/borrar. **En producción** deberías sustituir esto por políticas más restrictivas (por ejemplo, solo usuarios autenticados).
+Esto crea la tabla `parts` con las columnas indicadas, índices y políticas RLS que permiten al cliente web (clave **anon**) leer e insertar/actualizar/borrar.
+
+### Administración (recomendado en producción)
+
+El sitio asume **un solo usuario administrador**: el catálogo público es de solo lectura; crear o editar repuestos, borrar y registrar transacciones ocurre en el panel que se abre con el icono de engranaje.
+
+1. En **SQL Editor**, ejecuta también [`supabase_migration_admin_auth.sql`](./supabase_migration_admin_auth.sql) (tras `supabase_setup.sql` o tus migraciones previas). Crea `app_settings`, la función `claim_admin_slot` y políticas que restringen escritura al administrador.
+2. En Supabase: **Authentication** → **Providers** → **Email**. Si quieres completar el alta sin abrir el correo, desactiva temporalmente **Confirm email** (solo en pruebas); en producción conviene dejarlo activo y entrar otra vez tras confirmar.
+3. Tras crear el primer administrador, en **Authentication** → **Providers** puedes **deshabilitar “Sign up”** para que nadie más se registre (el acceso queda solo por inicio de sesión del correo ya creado).
 
 ## 2. Obtener URL y clave anónima
 

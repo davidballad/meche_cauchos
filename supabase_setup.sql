@@ -19,8 +19,8 @@ create index if not exists parts_category_idx on public.parts (category);
 create index if not exists parts_brand_idx on public.parts (brand);
 create index if not exists parts_name_idx on public.parts (name);
 
--- Políticas RLS: en el tier gratuito, habilita RLS y permite lectura/escritura anónima
--- Ajusta según tu modelo de seguridad (por ejemplo, solo service role o auth).
+-- Políticas RLS: lectura/escritura anónima (desarrollo). En producción ejecuta
+-- supabase_migration_admin_auth.sql: catálogo solo lectura para el público y panel admin autenticado.
 alter table public.parts enable row level security;
 
 drop policy if exists "Permitir lectura pública de parts" on public.parts;
