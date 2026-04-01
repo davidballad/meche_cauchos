@@ -8,6 +8,7 @@ let allParts = [];
 
 /** @type {Array<Record<string, unknown>>} */
 let allTransactions = [];
+let currentSaleCart = []; // Shopping cart for new sales
 
 let warnedTxMissing = false;
 
@@ -49,6 +50,10 @@ function isLowStock(row) {
 
 function showToast(message, type = 'success') {
   const container = $('#toast-container');
+  if (!container) {
+    console.warn('Toast:', message);
+    return;
+  }
   const el = document.createElement('div');
   el.className = `toast ${type}`;
   el.textContent = message;
@@ -60,8 +65,8 @@ function showToast(message, type = 'success') {
 
 function setGlobalLoading(on) {
   const ov = $('#global-loading');
-  ov.classList.toggle('visible', on);
-  ov.setAttribute('aria-hidden', on ? 'false' : 'true');
+  ov?.classList.toggle('visible', on);
+  ov?.setAttribute('aria-hidden', on ? 'false' : 'true');
 }
 
 function setSectionLoading(sectionId, on) {
@@ -94,45 +99,27 @@ function setActiveNav(id) {
   $$('.main-nav .nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.section === id));
 }
 
-function showSection(id) {
-  setActiveNav(id);
-  const sectionEl = $(`#section-${id}`);
-  if (sectionEl) {
-    scrollSpySuppressUntil = Date.now() + 750;
-    sectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function navigateTo(id) {
+  // Hide all sections
+  $$('.section').forEach(s => {
+    s.classList.remove('active');
+  });
+
+  const target = $(`#section-${id}`);
+  if (target) {
+    target.classList.add('active');
+    setActiveNav(id);
+    window.location.hash = id;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
-  if (id === 'search') renderSearchResults();
+
+  if (id === 'catalog') renderCatalog();
+  if (id === 'admin') syncAdminPortalAuth();
 }
 
-function initScrollSpy() {
-  const header = $('.site-header');
-  const panels = $$('.section-panel');
-  if (!header || panels.length === 0) return;
-
-  function updateActiveFromScroll() {
-    if (Date.now() < scrollSpySuppressUntil) return;
-    const offset = header.getBoundingClientRect().height + 16;
-    let current = 'dashboard';
-    for (const s of panels) {
-      const top = s.getBoundingClientRect().top;
-      if (top <= offset) current = s.id.replace(/^section-/, '');
-    }
-    setActiveNav(current);
-  }
-
-  let raf = 0;
-  window.addEventListener(
-    'scroll',
-    () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        updateActiveFromScroll();
-      });
-    },
-    { passive: true }
-  );
-  updateActiveFromScroll();
+function handleHash() {
+  const hash = window.location.hash.replace('#', '') || 'catalog';
+  navigateTo(hash);
 }
 
 function initScrollDrivenMotion() {
@@ -151,8 +138,13 @@ function initScrollDrivenMotion() {
     const p = y / range;
 
     if (stage) {
-      const tilt = (p - 0.5) * -1.4;
-      stage.style.transform = `translateZ(0) rotateX(${tilt}deg)`;
+      // Disable tilt for admin section to ensure stable click targets
+      if (window.location.hash === '#admin') {
+        stage.style.transform = 'translateZ(0) rotateX(0deg)';
+      } else {
+        const tilt = (p - 0.5) * -1.4;
+        stage.style.transform = `translateZ(0) rotateX(${tilt}deg)`;
+      }
     }
     if (mesh) {
       mesh.style.transform = `translate3d(0, ${y * 0.06}px, 0) rotateX(${3 + p * 5}deg) scale(1.08)`;
@@ -175,10 +167,62 @@ function initScrollDrivenMotion() {
   tick();
 }
 
-function navigateTo(section) {
-  showSection(section);
-  if (section === 'dashboard') renderDashboard();
-  if (section === 'catalog') renderCatalog();
+function openAdminPortal() {
+  navigateTo('admin');
+}
+
+function closeAdminPortal() {
+  navigateTo('dashboard');
+}
+
+function showAuthModal(show = true) {
+  const modal = $('#auth-modal');
+  if (modal) modal.classList.toggle('visible', show);
+}
+
+function showAdminWorkspace() {
+  const auth = $('#auth-modal'); // We use modal for auth now
+  const ws = $('#admin-workspace');
+  showAuthModal(false);
+  if (ws) ws.hidden = false;
+  populateTransactionPartSelect();
+  renderTransactionsTable();
+  updateTxPartHint();
+  renderAdminCatalog();
+}
+
+function hideAdminWorkspace() {
+  const ws = $('#admin-workspace');
+  if (ws) ws.hidden = true;
+}
+
+/** @param {'catalog'|'transactions'|'form'} slug */
+function goToAdminSection(slug) {
+  $$('.admin-section').forEach(s => s.classList.remove('active'));
+  const target = $(`#admin-section-${slug}`);
+  if (target) target.classList.add('active');
+
+  $$('.admin-nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.adminSection === slug));
+
+  if (slug === 'dashboard') renderDashboard();
+}
+
+function showAdminLoginForm() {
+  const setupForm = $('#admin-setup-form');
+  const loginForm = $('#admin-login-form');
+  const intro = $('#admin-auth-intro');
+  if (setupForm) setupForm.hidden = true;
+  if (loginForm) loginForm.hidden = false;
+  if (intro) intro.textContent = 'Inicia sesión con la cuenta de administrador.';
+}
+
+function showAdminSetupForm() {
+  const setupForm = $('#admin-setup-form');
+  const loginForm = $('#admin-login-form');
+  const intro = $('#admin-auth-intro');
+  if (setupForm) setupForm.hidden = false;
+  if (loginForm) loginForm.hidden = true;
+  if (intro) intro.textContent = 'Configura la cuenta de administrador única.';
 }
 
 async function fetchAppSettings() {
@@ -197,68 +241,6 @@ async function checkIsAdmin() {
   return data.admin_user_id === session.user.id;
 }
 
-function openAdminPortal() {
-  const portal = $('#admin-portal');
-  if (!portal) return;
-  portal.hidden = false;
-  portal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('admin-portal-open');
-}
-
-function closeAdminPortal() {
-  const portal = $('#admin-portal');
-  if (!portal) return;
-  portal.hidden = true;
-  portal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('admin-portal-open');
-}
-
-function showAdminWorkspace() {
-  const auth = $('#admin-auth');
-  const ws = $('#admin-workspace');
-  const logout = $('#admin-logout');
-  if (auth) auth.hidden = true;
-  if (ws) ws.hidden = false;
-  if (logout) logout.hidden = false;
-  populateTransactionPartSelect();
-  renderTransactionsTable();
-  updateTxPartHint();
-  renderAdminCatalog();
-}
-
-function hideAdminWorkspace() {
-  const auth = $('#admin-auth');
-  const ws = $('#admin-workspace');
-  const logout = $('#admin-logout');
-  if (auth) auth.hidden = false;
-  if (ws) ws.hidden = true;
-  if (logout) logout.hidden = true;
-}
-
-/** @param {'catalog'|'transactions'|'form'} slug */
-function goToAdminSection(slug) {
-  const id = `admin-section-${slug}`;
-  const el = document.getElementById(id);
-  $$('.admin-nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.adminSection === slug));
-  scrollSpySuppressUntil = Date.now() + 400;
-  el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function setActiveAdminNavFromScroll() {
-  const wrap = $('#admin-workspace .admin-workspace__scroll');
-  if (!wrap) return;
-  const panels = $$('.admin-section-panel', wrap);
-  const mid = wrap.getBoundingClientRect().top + 100;
-  let current = 'catalog';
-  for (const s of panels) {
-    if (s.getBoundingClientRect().top <= mid) {
-      const id = s.id.replace(/^admin-section-/, '');
-      current = id;
-    }
-  }
-  $$('.admin-nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.adminSection === current));
-}
-
 async function syncAdminPortalAuth() {
   if (!supabase) return;
 
@@ -269,74 +251,48 @@ async function syncAdminPortalAuth() {
   const { data: settings, error: settingsError } = await fetchAppSettings();
 
   if (settingsError) {
-    if (intro) {
-      intro.textContent =
-        'No se pudo leer la configuración del sitio. Si aún no lo has hecho, ejecuta supabase_migration_admin_auth.sql en el SQL Editor de Supabase.';
-    }
-    if (setupForm) setupForm.hidden = true;
-    if (loginForm) loginForm.hidden = true;
-    hideAdminWorkspace();
+    showToast('Error de configuración.', 'error');
     return;
   }
 
   const needsSetup = !settings?.admin_user_id;
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
 
   if (needsSetup && session) {
     const claim = await supabase.rpc('claim_admin_slot');
     if (claim.error) {
-      if (intro) intro.textContent = claim.error.message || 'No se pudo completar el registro de administrador.';
-      if (setupForm) setupForm.hidden = true;
-      if (loginForm) loginForm.hidden = false;
-      hideAdminWorkspace();
+      showAuthModal(true);
+      showAdminLoginForm();
       await supabase.auth.signOut();
-      showToast('Otra cuenta ya es la administradora o el registro falló.', 'error');
       return;
     }
-    if (intro) intro.textContent = '';
-    if (setupForm) setupForm.hidden = true;
-    if (loginForm) loginForm.hidden = true;
-    showToast('Administrador activado.');
-    await refreshAllData();
     showAdminWorkspace();
     return;
   }
 
   if (needsSetup) {
     hideAdminWorkspace();
-    if (intro) intro.textContent = 'Configura la cuenta de administrador (solo se permite una).';
-    if (setupForm) setupForm.hidden = false;
-    if (loginForm) loginForm.hidden = true;
+    showAuthModal(true);
+    showAdminSetupForm();
     return;
   }
 
   if (!session) {
     hideAdminWorkspace();
-    if (intro) intro.textContent = 'Inicia sesión con el correo del administrador.';
-    if (setupForm) setupForm.hidden = true;
-    if (loginForm) loginForm.hidden = false;
+    showAuthModal(true);
+    showAdminLoginForm();
     return;
   }
 
   const isAdm = await checkIsAdmin();
   if (!isAdm) {
-    if (intro) {
-      intro.textContent = 'Esta cuenta no es el administrador de este sitio.';
-    }
-    if (setupForm) setupForm.hidden = true;
-    if (loginForm) loginForm.hidden = false;
-    hideAdminWorkspace();
+    showAuthModal(true);
+    showAdminLoginForm();
     await supabase.auth.signOut();
-    showToast('Solo la cuenta de administración puede acceder al panel.', 'error');
+    showToast('Acceso denegado.', 'error');
     return;
   }
 
-  if (intro) intro.textContent = '';
-  if (setupForm) setupForm.hidden = true;
-  if (loginForm) loginForm.hidden = true;
   showAdminWorkspace();
 }
 
@@ -376,6 +332,7 @@ async function refreshAllData() {
       allParts = [];
     } else {
       allParts = partsData || [];
+      console.log('Parts loaded successfully:', allParts.length);
     }
 
     let txRows = [];
@@ -420,19 +377,19 @@ async function refreshAllData() {
     renderCatalog();
     renderAdminCatalog();
     populateBrandFilter();
-    renderSearchResults();
+    populateAdminCategoryFilter();
     populateTransactionPartSelect();
     renderTransactionsTable();
   } catch (err) {
     console.error(err);
-    showToast(err instanceof Error ? err.message : 'Error al cargar datos.', 'error');
+    showToast('Error al cargar datos.', 'error');
     allParts = [];
     allTransactions = [];
     renderDashboard();
     renderCatalog();
     renderAdminCatalog();
     populateBrandFilter();
-    renderSearchResults();
+    populateAdminCategoryFilter();
     populateTransactionPartSelect();
     renderTransactionsTable();
   } finally {
@@ -441,8 +398,9 @@ async function refreshAllData() {
 }
 
 function renderDashboard() {
-  const count = allParts.length;
-  const value = allParts.reduce((sum, p) => {
+  const activeParts = allParts.filter(p => p.is_active !== false);
+  const count = activeParts.length;
+  const value = activeParts.reduce((sum, p) => {
     const price = Number(p.price) || 0;
     const qty = Number(p.stock_quantity) || 0;
     return sum + price * qty;
@@ -451,16 +409,18 @@ function renderDashboard() {
   $('#stat-count').textContent = String(count);
   $('#stat-value').textContent = formatMoney(value);
 
-  const low = allParts.filter(isLowStock);
+  const low = activeParts.filter(isLowStock);
   const list = $('#low-stock-list');
   const empty = $('#low-stock-empty');
+  if (!list) return;
+  
   list.innerHTML = '';
 
   if (low.length === 0) {
-    empty.hidden = false;
+    if (empty) empty.hidden = false;
     return;
   }
-  empty.hidden = true;
+  if (empty) empty.hidden = true;
   low.forEach((p) => {
     const li = document.createElement('li');
     li.innerHTML = `
@@ -530,13 +490,12 @@ function buildPartCard(p, { showActions = true } = {}) {
       <div class="meta">${escapeHtml(String(p.brand || '—'))} · ${escapeHtml(String(p.category || '—'))}</div>
     </div>
     
-    ${
-      showActions
-        ? `<div class="part-card-actions" style="padding: 0 1.25rem 1.25rem;">
+    ${showActions
+      ? `<div class="part-card-actions" style="padding: 0 1.25rem 1.25rem;">
         <button type="button" class="btn btn-secondary btn-sm btn-edit" data-id="${escapeHtml(String(p.id))}">Editar</button>
         <button type="button" class="btn btn-danger btn-sm btn-delete" data-id="${escapeHtml(String(p.id))}">Eliminar</button>
       </div>`
-        : ''
+      : ''
     }
   `;
 
@@ -550,81 +509,116 @@ function buildPartCard(p, { showActions = true } = {}) {
 function renderCatalog() {
   const grid = $('#catalog-grid');
   const empty = $('#catalog-empty');
+  if (!grid) return;
   grid.innerHTML = '';
 
-  if (allParts.length === 0) {
+  const filtered = getFilteredParts('filter-q', 'filter-category', 'filter-brand');
+
+  if (filtered.length === 0) {
     empty.hidden = false;
     return;
   }
   empty.hidden = true;
-  allParts.forEach((p) => grid.appendChild(buildPartCard(p, { showActions: false })));
+  filtered.forEach((p) => grid.appendChild(buildPartCard(p, { showActions: false })));
 }
 
 function renderAdminCatalog() {
   const grid = $('#admin-catalog-grid');
   const empty = $('#admin-catalog-empty');
-  if (!grid || !empty) return;
+  if (!grid) return;
   grid.innerHTML = '';
 
-  if (allParts.length === 0) {
+  const filtered = getFilteredParts('admin-filter-q', 'admin-filter-category', '');
+
+  if (filtered.length === 0) {
     empty.hidden = false;
     return;
   }
   empty.hidden = true;
-  allParts.forEach((p) => grid.appendChild(buildPartCard(p, { showActions: true })));
+  filtered.forEach((p) => grid.appendChild(buildPartCard(p, { showActions: true })));
 }
 
 function populateBrandFilter() {
-  const sel = $('#filter-brand');
-  const current = sel.value;
+  const selPublic = $('#filter-brand');
   const brands = [...new Set(allParts.map((p) => p.brand).filter(Boolean))].sort((a, b) =>
     String(a).localeCompare(String(b), 'es')
   );
+
+  const populate = (el) => {
+    if (!el) return;
+    const current = el.value;
+    el.innerHTML = '<option value="">Todas</option>';
+    brands.forEach((b) => {
+      const opt = document.createElement('option');
+      opt.value = String(b);
+      opt.textContent = String(b);
+      el.appendChild(opt);
+    });
+    el.value = brands.includes(current) ? current : '';
+  };
+
+  populate(selPublic);
+}
+
+function populateAdminCategoryFilter() {
+  const sel = $('#admin-filter-category');
+  if (!sel) return;
+  const cats = [...new Set(allParts.map((p) => p.category).filter(Boolean))].sort();
   sel.innerHTML = '<option value="">Todas</option>';
-  brands.forEach((b) => {
+  cats.forEach(c => {
     const opt = document.createElement('option');
-    opt.value = String(b);
-    opt.textContent = String(b);
+    opt.value = c;
+    opt.textContent = c;
     sel.appendChild(opt);
   });
-  const hasCurrent = [...sel.options].some((o) => o.value === current);
-  sel.value = hasCurrent ? current : '';
 }
 
 function populateTransactionPartSelect() {
   const sel = $('#tx-part');
   if (!sel) return;
   const current = sel.value;
-  const withStock = allParts.filter((p) => (Number(p.stock_quantity) || 0) > 0);
-  sel.innerHTML = '<option value="">— Selecciona un repuesto con stock —</option>';
-  withStock.forEach((p) => {
+  sel.innerHTML = '<option value="">— Selecciona un repuesto —</option>';
+  
+  // Para ventas nuevas, solo mostrar activos. 
+  // Para edición, incluir el producto actual aunque esté inactivo.
+  const activeAndCurrent = allParts.filter(p => p.is_active !== false || p.id === current);
+  
+  activeAndCurrent.forEach((p) => {
     const opt = document.createElement('option');
     opt.value = String(p.id);
     opt.textContent = `${p.part_number} — ${p.name} (stock: ${p.stock_quantity})`;
     sel.appendChild(opt);
   });
-  const hasCurrent = [...sel.options].some((o) => o.value === current);
-  sel.value = hasCurrent ? current : '';
+  sel.value = activeAndCurrent.some(p => p.id === current) ? current : '';
 }
 
 function updateTxPartHint() {
   const id = $('#tx-part')?.value;
   const qty = $('#tx-qty');
+  const ivaPercent = $('#tx-iva-percent');
+  const total = $('#tx-total');
   const hint = $('#tx-stock-hint');
-  if (!qty || !hint) return;
+
   if (!id) {
-    hint.textContent = '';
-    qty.removeAttribute('max');
+    if (hint) hint.textContent = '';
     return;
   }
+
   const p = allParts.find((x) => x.id === id);
-  const stock = p ? Number(p.stock_quantity) || 0 : 0;
-  if (stock > 0) {
-    qty.setAttribute('max', String(stock));
-    hint.textContent = `Stock disponible: ${stock}`;
-  } else {
-    qty.setAttribute('max', '0');
-    hint.textContent = 'Sin stock para este repuesto.';
+  if (!p) return;
+
+  const stock = Number(p.stock_quantity) || 0;
+  if (hint) hint.textContent = `Stock: ${stock}`;
+
+  // Auto-calculate if not in edit mode or if manually triggered
+  const quantity = parseInt(qty.value, 10) || 1;
+  const price = Number(p.price) || 0;
+  const subtotal = price * quantity;
+  const ivaVal = subtotal * ((Number(ivaPercent?.value) || 0) / 100);
+
+  // Set total tentatively if not edited manually (simplified logic)
+  if (total && !total.dataset.manual) {
+    total.value = (subtotal + ivaVal).toFixed(2);
   }
 }
 
@@ -632,48 +626,177 @@ function renderTransactionsTable() {
   const tbody = $('#transactions-tbody');
   const empty = $('#transactions-empty');
   const table = $('#transactions-table');
-  if (!tbody || !empty || !table) return;
+  if (!tbody) return;
+
   tbody.innerHTML = '';
 
-  if (allTransactions.length === 0) {
+  const start = $('#tx-filter-start')?.value;
+  const end = $('#tx-filter-end')?.value;
+
+  const filtered = allTransactions.filter(tx => {
+    const d = tx.created_at.split('T')[0];
+    if (start && d < start) return false;
+    if (end && d > end) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
     empty.hidden = false;
     table.hidden = true;
     return;
   }
+
   empty.hidden = true;
   table.hidden = false;
 
-  const fmtDate = (iso) => {
-    try {
-      return new Date(String(iso)).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' });
-    } catch {
-      return '—';
-    }
-  };
+  const fmtDate = (iso) => new Date(iso).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' });
 
-  for (const tx of allTransactions) {
+  for (const tx of filtered) {
     const part = allParts.find((p) => p.id === tx.part_id);
-    const pn = part ? String(part.part_number) : '—';
-    const nm = part ? String(part.name) : '(repuesto no cargado)';
+    const pn = part ? part.part_number : '—';
+    const nm = part ? part.name : '(repuesto no cargado)';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${escapeHtml(fmtDate(tx.created_at))}</td>
-      <td>${escapeHtml(pn)}</td>
+      <td style="font-size:0.75rem; font-weight:700;">${escapeHtml(pn)}</td>
       <td>${escapeHtml(nm)}</td>
-      <td class="num">${escapeHtml(String(tx.quantity ?? '—'))}</td>
-      <td class="num">${escapeHtml(formatMoney(tx.total))}</td>
-      <td>${escapeHtml(tx.notes ? String(tx.notes) : '—')}</td>
+      <td class="num">${tx.quantity}</td>
+      <td class="num">${formatMoney(tx.iva || 0)}</td>
+      <td style="font-size:0.7rem; color:var(--ink-muted); max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(tx.notes || '')}">
+        ${escapeHtml(tx.notes || '—')}
+      </td>
+      <td class="num" style="font-weight:800;">${formatMoney(tx.total)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm btn-edit-tx" data-id="${tx.id}">✏️</button>
+      </td>
     `;
+    tr.querySelector('.btn-edit-tx').onclick = () => startEditTx(tx);
     tbody.appendChild(tr);
   }
 }
 
-function getFilteredParts() {
-  const q = ($('#filter-q').value || '').trim().toLowerCase();
-  const cat = $('#filter-category').value;
-  const brand = $('#filter-brand').value;
+function startEditTx(tx) {
+  const p = allParts.find(x => x.id === tx.part_id);
+  const subtotal = p ? (Number(p.price) || 0) * tx.quantity : 0;
+  const percentage = subtotal > 0 ? Math.round((tx.iva / subtotal) * 100) : 0;
+
+  $('#tx-edit-id').value = tx.id;
+  $('#tx-part').value = tx.part_id;
+  $('#tx-qty').value = tx.quantity;
+  $('#tx-iva-percent').value = percentage;
+  $('#tx-total').value = tx.total;
+  $('#tx-notes').value = tx.notes || '';
+
+  $('#tx-submit').textContent = 'Guardar Cambios';
+  $('#tx-cancel-edit').hidden = false;
+
+  goToAdminSection('transactions');
+  window.scrollTo({ top: $('#transaction-form').offsetTop - 100, behavior: 'smooth' });
+}
+
+function cancelEditTx() {
+  $('#transaction-form').reset();
+  $('#tx-edit-id').value = '';
+  $('#tx-iva-percent').value = '15';
+  $('#tx-submit').textContent = 'Registrar Venta';
+  $('#tx-cancel-edit').hidden = true;
+  delete $('#tx-total').dataset.manual;
+  updateTxPartHint();
+}
+
+// ——— Multi-item Cart Functions ———
+
+function renderCartUI() {
+  const container = $('#tx-cart-container');
+  const tbody = $('#tx-cart-body');
+  const grandTotalEl = $('#tx-cart-grand-total');
+  
+  if (!container || !tbody || !grandTotalEl) return;
+  
+  if (currentSaleCart.length === 0) {
+    container.hidden = true;
+    tbody.innerHTML = '';
+    grandTotalEl.textContent = '—';
+    return;
+  }
+  
+  container.hidden = false;
+  tbody.innerHTML = '';
+  let grandTotal = 0;
+  
+  currentSaleCart.forEach((item, idx) => {
+    grandTotal += item.total;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(item.part_number)}</strong> — ${escapeHtml(item.name)}</td>
+      <td>${item.quantity}</td>
+      <td>${formatMoney(item.iva)}</td>
+      <td style="font-weight:700;">${formatMoney(item.total)}</td>
+      <td>
+        <button type="button" class="btn-remove-cart" data-idx="${idx}">×</button>
+      </td>
+    `;
+    tr.querySelector('.btn-remove-cart').onclick = () => removeFromCart(idx);
+    tbody.appendChild(tr);
+  });
+  
+  grandTotalEl.textContent = formatMoney(grandTotal);
+}
+
+function addToCart() {
+  const partId = $('#tx-part').value;
+  const qty = parseInt($('#tx-qty').value, 10) || 0;
+  const percent = Number($('#tx-iva-percent').value) || 0;
+  const total = Number($('#tx-total').value) || 0;
+  
+  if (!partId) {
+    showToast('Selecciona un repuesto.', 'error');
+    return;
+  }
+  if (qty < 1) {
+    showToast('La cantidad debe ser al menos 1.', 'error');
+    return;
+  }
+  
+  const part = allParts.find(p => p.id === partId);
+  if (!part) return;
+  
+  // Calculate IVA for this specific item
+  const subtotal = (Number(part.price) || 0) * qty;
+  const iva = subtotal * (percent / 100);
+  
+  currentSaleCart.push({
+    part_id: partId,
+    part_number: part.part_number,
+    name: part.name,
+    quantity: qty,
+    iva: iva,
+    total: total
+  });
+  
+  // Reset item inputs
+  $('#tx-part').value = '';
+  $('#tx-qty').value = '1';
+  $('#tx-total').value = '';
+  delete $('#tx-total').dataset.manual;
+  $('#tx-stock-hint').textContent = '';
+  
+  renderCartUI();
+  showToast('Producto añadido al pedido.');
+}
+
+function removeFromCart(idx) {
+  currentSaleCart.splice(idx, 1);
+  renderCartUI();
+}
+
+function getFilteredParts(qId, catId, brandId) {
+  const q = qId ? ($('#' + qId)?.value || '').trim().toLowerCase() : '';
+  const cat = catId ? $('#' + catId)?.value : '';
+  const brand = brandId ? $('#' + brandId)?.value : '';
 
   return allParts.filter((p) => {
+    if (p.is_active === false) return false;
     if (cat && String(p.category || '') !== cat) return false;
     if (brand && String(p.brand || '') !== brand) return false;
     if (!q) return true;
@@ -682,20 +805,6 @@ function getFilteredParts() {
     const br = String(p.brand || '').toLowerCase();
     return name.includes(q) || pn.includes(q) || br.includes(q);
   });
-}
-
-function renderSearchResults() {
-  const grid = $('#search-grid');
-  const empty = $('#search-empty');
-  grid.innerHTML = '';
-  const filtered = getFilteredParts();
-
-  if (filtered.length === 0) {
-    empty.hidden = false;
-    return;
-  }
-  empty.hidden = true;
-  filtered.forEach((p) => grid.appendChild(buildPartCard(p, { showActions: false })));
 }
 
 function resetForm() {
@@ -722,7 +831,7 @@ function startEdit(id) {
   $('#field-stock_quantity').value = String(p.stock_quantity ?? 0);
   $('#field-low_stock_threshold').value = String(p.low_stock_threshold ?? 5);
   $('#field-description').value = String(p.description ?? '');
-  
+
   // New fields
   $('#field-dimensions').value = String(p.dimensions ?? '');
   $('#field-voltage').value = String(p.voltage ?? '');
@@ -748,13 +857,9 @@ function startEdit(id) {
 
   $('#form-title').textContent = 'Editar repuesto';
   $('#form-submit-btn').textContent = 'Actualizar';
-  openAdminPortal();
-  syncAdminPortalAuth().then(async () => {
-    if (await checkIsAdmin()) {
-      goToAdminSection('form');
-      $('#field-part_number').focus();
-    }
-  });
+  navigateTo('admin');
+  goToAdminSection('form');
+  $('#field-part_number').focus();
 }
 
 async function confirmDelete(p) {
@@ -766,7 +871,7 @@ async function confirmDelete(p) {
 
   setGlobalLoading(true);
   try {
-    const { error } = await supabase.from('parts').delete().eq('id', p.id);
+    const { error } = await supabase.from('parts').update({ is_active: false }).eq('id', p.id);
     if (error) {
       showToast(`Error al eliminar: ${error.message}`, 'error');
       return;
@@ -802,7 +907,7 @@ function wireEventListeners() {
     const dimensions = $('#field-dimensions').value.trim() || null;
     const voltage = $('#field-voltage').value.trim() || null;
     const led_count = parseInt($('#field-led_count').value, 10) || null;
-    const weight_ref = parseInt($('#field-weight_ref').value, 10) || null;
+    const weight_ref = parseFloat($('#field-weight_ref').value) || null;
     const features = $('#field-features').value.trim() || null;
     let image_url = $('#field-image_url').value.trim() || null;
 
@@ -831,7 +936,7 @@ function wireEventListeners() {
         const { data: { publicUrl } } = supabase.storage
           .from('parts-images')
           .getPublicUrl(filePath);
-        
+
         image_url = publicUrl;
       }
 
@@ -898,36 +1003,33 @@ function wireEventListeners() {
 
   $('#form-reset-btn').addEventListener('click', () => resetForm());
 
+  $('#form-cancel-btn').addEventListener('click', () => {
+    resetForm();
+    goToAdminSection('catalog');
+  });
+
   $$('.main-nav .nav-btn').forEach((btn) => {
     btn.addEventListener('click', () => navigateTo(btn.dataset.section));
   });
 
-  $('#admin-open')?.addEventListener('click', () => {
-    openAdminPortal();
-    syncAdminPortalAuth();
-  });
-
-  $('#admin-close')?.addEventListener('click', () => closeAdminPortal());
-  $('#admin-backdrop')?.addEventListener('click', () => closeAdminPortal());
-
-  $('#admin-workspace .admin-workspace__scroll')?.addEventListener(
-    'scroll',
-    () => requestAnimationFrame(setActiveAdminNavFromScroll),
-    { passive: true }
-  );
+  $('#admin-open')?.addEventListener('click', () => navigateTo('admin'));
+  $('#auth-close')?.addEventListener('click', () => showAuthModal(false));
+  $('#auth-backdrop')?.addEventListener('click', () => showAuthModal(false));
 
   $$('.admin-nav-btn').forEach((btn) => {
     btn.addEventListener('click', () => goToAdminSection(btn.dataset.adminSection));
   });
 
-  $('#admin-logout')?.addEventListener('click', async () => {
+  const logoutAction = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
     hideAdminWorkspace();
-    await syncAdminPortalAuth();
-    await refreshAllData();
+    navigateTo('dashboard');
     showToast('Sesión cerrada.');
-  });
+  };
+
+  $('#admin-logout')?.addEventListener('click', logoutAction);
+  $('#admin-logout-nav')?.addEventListener('click', logoutAction);
 
   $('#admin-setup-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -986,73 +1088,96 @@ function wireEventListeners() {
     }
   });
 
-  initScrollSpy();
-  initScrollDrivenMotion();
+  $('#toggle-to-login')?.addEventListener('click', () => showAdminLoginForm());
+  $('#toggle-to-setup')?.addEventListener('click', () => showAdminSetupForm());
+
 
   $('#brand-link').addEventListener('click', (e) => {
     e.preventDefault();
-    navigateTo('dashboard');
+    navigateTo('catalog');
   });
 
-  $('#filter-q').addEventListener('input', () => renderSearchResults());
-  $('#filter-category').addEventListener('change', () => renderSearchResults());
-  $('#filter-brand').addEventListener('change', () => renderSearchResults());
+  $('#filter-q').addEventListener('input', () => renderCatalog());
+  $('#filter-category').addEventListener('change', () => renderCatalog());
+  $('#filter-brand').addEventListener('change', () => renderCatalog());
+
+  $('#admin-filter-q')?.addEventListener('input', () => renderAdminCatalog());
+  $('#admin-filter-category')?.addEventListener('change', () => renderAdminCatalog());
 
   $('#tx-part').addEventListener('change', () => updateTxPartHint());
   $('#tx-qty').addEventListener('input', () => updateTxPartHint());
+  $('#tx-iva-percent').addEventListener('input', () => updateTxPartHint());
+  $('#tx-total').addEventListener('input', () => {
+    $('#tx-total').dataset.manual = 'true';
+  });
+
+  $('#tx-filter-start')?.addEventListener('change', () => renderTransactionsTable());
+  $('#tx-filter-end')?.addEventListener('change', () => renderTransactionsTable());
+  $('#tx-cancel-edit')?.addEventListener('click', () => cancelEditTx());
+
+  $('#tx-add-item').addEventListener('click', () => addToCart());
 
   $('#transaction-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!supabase) return;
-    if (!(await checkIsAdmin())) {
-      showToast('Debes iniciar sesión como administrador.', 'error');
-      return;
-    }
 
+    const txId = $('#tx-edit-id').value;
     const partId = $('#tx-part').value;
-    const qty = parseInt($('#tx-qty').value, 10) || 0;
-    const notesRaw = $('#tx-notes').value.trim();
-    const notes = notesRaw === '' ? null : notesRaw;
-
-    if (!partId) {
-      showToast('Selecciona un repuesto.', 'error');
-      return;
-    }
-    const p = allParts.find((x) => x.id === partId);
-    const stock = p ? Number(p.stock_quantity) || 0 : 0;
-    if (qty < 1) {
-      showToast('La cantidad debe ser al menos 1.', 'error');
-      return;
-    }
-    if (qty > stock) {
-      showToast(`Stock insuficiente (disponible: ${stock}).`, 'error');
-      return;
-    }
+    const qty = parseInt($('#tx-qty').value, 10);
+    const percent = Number($('#tx-iva-percent').value) || 0;
+    const total = Number($('#tx-total').value) || 0;
+    const notes = $('#tx-notes').value.trim() || null;
 
     setGlobalLoading(true);
     try {
-      const rpcPromise = supabase.rpc('create_transaction_sale', {
-        p_part_id: partId,
-        p_quantity: qty,
-        p_notes: notes,
-      });
-      const { error } = await withTimeout(
-        rpcPromise,
-        REQUEST_MS,
-        'Tiempo de espera al registrar la transacción.'
-      );
+      let res;
+      if (txId) {
+        // Modo Edición: Actualizar una sola transacción existente
+        const part = allParts.find(p => p.id === partId);
+        const subtotal = part ? (Number(part.price) || 0) * qty : 0;
+        const ivaAmount = subtotal * (percent / 100);
+        
+        res = await supabase.rpc('update_transaction', {
+          p_tx_id: txId,
+          p_notes: notes,
+          p_iva: ivaAmount,
+          p_total: total
+        });
+      } else {
+        // Modo Nueva Venta: Procesar Carrito
+        if (currentSaleCart.length === 0) {
+          if (partId && qty > 0) {
+            addToCart(); // Auto-añadir lo que esté en pantalla
+          } else {
+            showToast('Añade al menos un producto al pedido.', 'error');
+            setGlobalLoading(false);
+            return;
+          }
+        }
+
+        res = await supabase.rpc('create_multi_item_sale', {
+          p_items: currentSaleCart,
+          p_notes: notes
+        });
+      }
+
+      const { data, error } = res;
       if (error) {
         showToast(`Error: ${error.message}`, 'error');
         return;
       }
-      showToast('Transacción registrada. El inventario se ha actualizado.');
-      $('#tx-notes').value = '';
-      $('#tx-qty').value = '1';
+
+      showToast(txId ? 'Registro actualizado correctamente.' : '¡Venta multiobjeto registrada con éxito!');
+      
+      // Reset completo
+      currentSaleCart = [];
+      renderCartUI();
+      $('#transaction-form').reset();
+      cancelEditTx();
       await refreshAllData();
-      goToAdminSection('transactions');
     } catch (err) {
       console.error(err);
-      showToast(err instanceof Error ? err.message : 'Error al registrar la transacción.', 'error');
+      showToast('Error inesperado al procesar la venta.', 'error');
     } finally {
       setGlobalLoading(false);
     }
@@ -1093,14 +1218,17 @@ async function bootstrap() {
   }
 
   supabase = createClient(supabaseUrl, supabaseAnonKey);
-  supabase.auth.onAuthStateChange(() => {
-    refreshAllData();
-    const portal = $('#admin-portal');
-    if (portal && !portal.hidden) syncAdminPortalAuth();
-  });
 
+  // Wire global event listeners (navigation, etc)
   wireEventListeners();
+  initScrollDrivenMotion();
+
+  // Initial data load
   await refreshAllData();
+
+  // SPA routing
+  window.addEventListener('hashchange', handleHash);
+  handleHash();
 }
 
 bootstrap();

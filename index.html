@@ -38,6 +38,9 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div id="global-loading" class="loading-overlay" aria-hidden="true">
+      <div class="spinner"></div>
+    </div>
     <div class="ambient-3d" aria-hidden="true">
       <div class="ambient-3d__glow ambient-3d__glow--a"></div>
       <div class="ambient-3d__glow ambient-3d__glow--b"></div>
@@ -45,7 +48,7 @@
     </div>
     <header class="site-header">
       <div class="header-inner">
-        <a href="#" class="brand" id="brand-link" aria-label="Inicio MZ Cauchos & Accesorios">
+        <a href="#catalog" class="brand" id="brand-link" aria-label="Inicio MZ Cauchos & Accesorios">
           <svg
             class="brand-icon"
             viewBox="0 0 48 48"
@@ -74,11 +77,10 @@
           </div>
         </a>
         <nav class="main-nav" aria-label="Secciones públicas">
-          <button type="button" class="nav-btn active" data-section="dashboard">
-            Panel
+          <button type="button" class="nav-btn active" data-section="catalog">
+            Catálogo
           </button>
-          <button type="button" class="nav-btn" data-section="catalog">Catálogo</button>
-          <button type="button" class="nav-btn" data-section="search">Buscar</button>
+          <button type="button" class="nav-btn" data-section="orders">Pedidos</button>
         </nav>
         <button
           type="button"
@@ -108,377 +110,430 @@
     <div class="viewport-3d">
       <div class="stage-3d">
         <main class="main-stack">
-          <p class="page-eyebrow">Operaciones</p>
-      <section id="section-dashboard" class="section section-panel" aria-labelledby="dash-title">
-        <h2 id="dash-title" class="section-title">Panel de control</h2>
-        <div id="dashboard-loading" class="section-loading" hidden>
-          <span class="spinner" aria-hidden="true"></span>
-          <span>Cargando datos…</span>
-        </div>
-        <div id="dashboard-content">
-          <div class="dashboard-grid">
-            <article class="stat-card">
-              <h3>Total de repuestos</h3>
-              <p class="value" id="stat-count">—</p>
-            </article>
-            <article class="stat-card">
-              <h3>Valor del inventario</h3>
-              <p class="value" id="stat-value">—</p>
-            </article>
-          </div>
-          <div class="low-stock-panel">
-            <h2>Alerta de stock bajo</h2>
-            <p id="low-stock-empty" class="empty-hint" hidden>
-              No hay repuestos por debajo del umbral. ¡Todo en orden!
-            </p>
-            <ul id="low-stock-list" class="low-stock-list"></ul>
-          </div>
-        </div>
-      </section>
+          <!-- ORDERS (PUBLIC PLACEHOLDER) -->
+          <section id="section-orders" class="section section-panel">
+            <p class="page-eyebrow">Gestión de Pedidos</p>
+            <h2 class="section-title">Pedidos y Seguimiento</h2>
+            
+            <div class="construction-container">
+              <div class="construction-card">
+                <div class="construction-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 3v1m0 16v1m9-9h-1M4 11H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707" stroke-linecap="round"/>
+                    <path d="M12 8v4l3 3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <h3>Próximamente</h3>
+                <p>Estamos trabajando en un sistema interno de pedidos para clientes. Vuelve pronto para ver las novedades.</p>
+                <div class="construction-badge">EN CONSTRUCCIÓN</div>
+              </div>
+            </div>
+          </section>
 
-      <section id="section-catalog" class="section section-panel" aria-labelledby="cat-title">
-        <h2 id="cat-title" class="section-title">Catálogo</h2>
-        <div id="catalog-loading" class="section-loading" hidden>
-          <span class="spinner" aria-hidden="true"></span>
-          <span>Cargando catálogo…</span>
-        </div>
-        <div id="catalog-grid" class="card-grid"></div>
-        <p id="catalog-empty" class="empty-hint" hidden>No hay repuestos registrados.</p>
-      </section>
+          <!-- CATALOG (PUBLIC) -->
+          <section id="section-catalog" class="section section-panel active">
+            <p class="page-eyebrow">Catálogo Público</p>
+            <h2 class="section-title">Explorar Repuestos</h2>
+            
+            <div class="filter-bar">
+              <div class="form-row">
+                <label for="filter-q">Buscar</label>
+                <input id="filter-q" type="search" placeholder="Nombre, número, marca..." />
+              </div>
+              <div class="form-row">
+                <label for="filter-category">Categoría</label>
+                <select id="filter-category">
+                  <option value="">Todas</option>
+                  <option value="Frenos">Frenos</option>
+                  <option value="Motor">Motor</option>
+                  <option value="Suspensión">Suspensión</option>
+                  <option value="Eléctrico">Eléctrico</option>
+                  <option value="Filtros">Filtros</option>
+                  <option value="Escape">Escape</option>
+                  <option value="Neumáticos">Neumáticos</option>
+                  <option value="Cauchos de puerta">Cauchos de puerta</option>
+                  <option value="Luces">Luces</option>
+                  <option value="Focos">Focos</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="filter-brand">Marca</label>
+                <select id="filter-brand">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+            </div>
 
-      <section id="section-search" class="section section-panel" aria-labelledby="search-title">
-        <h2 id="search-title" class="section-title">Búsqueda y filtros</h2>
-        <div class="filter-bar">
-          <div class="form-row">
-            <label for="filter-q">Buscar (nombre, número, marca)</label>
-            <input
-              id="filter-q"
-              type="search"
-              placeholder="Escribe para filtrar al instante…"
-              autocomplete="off"
-            />
-          </div>
-          <div class="form-row">
-            <label for="filter-category">Categoría</label>
-            <select id="filter-category">
-              <option value="">Todas</option>
-              <option value="Frenos">Frenos</option>
-              <option value="Motor">Motor</option>
-              <option value="Suspensión">Suspensión</option>
-              <option value="Eléctrico">Eléctrico</option>
-              <option value="Filtros">Filtros</option>
-              <option value="Escape">Escape</option>
-              <option value="Neumáticos">Neumáticos</option>
-              <option value="Cauchos de puerta">Cauchos de puerta</option>
-              <option value="Luces">Luces</option>
-              <option value="Focos">Focos</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label for="filter-brand">Marca</label>
-            <select id="filter-brand">
-              <option value="">Todas</option>
-            </select>
-          </div>
-        </div>
-        <div id="search-loading" class="section-loading" hidden>
-          <span class="spinner" aria-hidden="true"></span>
-          <span>Cargando…</span>
-        </div>
-        <div id="search-grid" class="card-grid"></div>
-        <p id="search-empty" class="empty-hint" hidden>No hay resultados con los filtros actuales.</p>
-      </section>
+            <div id="catalog-loading" class="section-loading" hidden>
+              <span class="spinner" aria-hidden="true"></span>
+              <span>Cargando catálogo…</span>
+            </div>
+            <div id="catalog-grid" class="card-grid"></div>
+            <p id="catalog-empty" class="empty-hint" hidden>No hay repuestos registrados.</p>
+          </section>
+
+          <!-- ADMIN WORKSPACE -->
+          <section id="section-admin" class="section section-panel">
+            <div class="section-title">
+              <span>Administración de Inventario</span>
+              <button type="button" class="btn btn-ghost btn-sm" id="admin-logout-nav">Cerrar sesión</button>
+            </div>
+            
+            <div id="admin-workspace" class="admin-workspace">
+              <nav class="admin-nav" aria-label="Administración">
+                <button type="button" class="admin-nav-btn active" data-admin-section="dashboard">Panel</button>
+                <button type="button" class="admin-nav-btn" data-admin-section="catalog">Inventario</button>
+                <button type="button" class="admin-nav-btn" data-admin-section="transactions">Transacciones</button>
+                <button type="button" class="admin-nav-btn" data-admin-section="form">Añadir / Editar</button>
+              </nav>
+
+              <!-- ADMIN: DASHBOARD -->
+              <div id="admin-section-dashboard" class="admin-section active">
+                <p class="section-intro">Resumen ejecutivo y alertas de stock.</p>
+                <div id="dashboard-loading" class="section-loading" hidden>
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span>Cargando datos…</span>
+                </div>
+                <div id="dashboard-content">
+                  <div class="dashboard-grid">
+                    <article class="stat-card">
+                      <h3>Total de repuestos</h3>
+                      <p class="value" id="stat-count">—</p>
+                    </article>
+                    <article class="stat-card">
+                      <h3>Valor del inventario</h3>
+                      <p class="value" id="stat-value">—</p>
+                    </article>
+                  </div>
+                  <div class="low-stock-panel">
+                    <h3>Alerta de stock bajo</h3>
+                    <p id="low-stock-empty" class="empty-hint" hidden>
+                      No hay repuestos por debajo del umbral. ¡Todo en orden!
+                    </p>
+                    <ul id="low-stock-list" class="low-stock-list"></ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ADMIN: CATALOG EDIT -->
+              <div id="admin-section-catalog" class="admin-section">
+                <p class="section-intro">Gestiona el inventario, edita precios o elimina registros obsoletos.</p>
+                
+                <div class="filter-bar">
+                  <div class="form-row">
+                    <label for="admin-filter-q">Buscar en inventario</label>
+                    <input id="admin-filter-q" type="search" placeholder="Filtrar por nombre o código..." />
+                  </div>
+                  <div class="form-row">
+                    <label for="admin-filter-category">Categoría</label>
+                    <select id="admin-filter-category">
+                      <option value="">Todas</option>
+                      <!-- Se puebla dinámicamente o se mantiene igual que el público -->
+                    </select>
+                  </div>
+                </div>
+
+                <div id="admin-catalog-loading" class="section-loading" hidden>
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span>Cargando…</span>
+                </div>
+                <div id="admin-catalog-grid" class="card-grid"></div>
+                <p id="admin-catalog-empty" class="empty-hint" hidden>No hay repuestos registrados.</p>
+              </div>
+
+              <!-- ADMIN: TRANSACTIONS -->
+              <div id="admin-section-transactions" class="admin-section">
+                <p class="section-intro">Registra ventas y controla las salidas de stock.</p>
+                
+                <form id="transaction-form" class="tx-form">
+                  <input type="hidden" id="tx-edit-id" />
+                  
+                  <!-- Controles para añadir un ítem -->
+                  <div class="cart-builder-box">
+                    <div class="form-row">
+                      <label for="tx-part">Repuesto *</label>
+                      <select id="tx-part">
+                        <option value="">— Selecciona un repuesto —</option>
+                      </select>
+                    </div>
+                    <div class="form-row--grid">
+                      <div class="form-row">
+                        <label for="tx-qty">Cantidad *</label>
+                        <input id="tx-qty" type="number" min="1" value="1" />
+                        <span id="tx-stock-hint" class="field-hint"></span>
+                      </div>
+                      <div class="form-row">
+                        <label for="tx-iva-percent">IVA (%)</label>
+                        <input id="tx-iva-percent" type="number" step="1" min="0" value="15" />
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <label for="tx-total">Total del ítem *</label>
+                      <input id="tx-total" type="number" step="0.01" min="0" />
+                      <span class="field-hint">Precio x Cantidad + IVA. Puedes ajustarlo.</span>
+                    </div>
+                    <div class="form-actions" style="margin-bottom: 1.5rem;">
+                      <button type="button" class="btn btn-secondary btn-sm" id="tx-add-item">＋ Añadir al Pedido</button>
+                    </div>
+                  </div>
+
+                  <!-- Tabla del Carrito -->
+                  <div id="tx-cart-container" class="tx-cart-container" hidden>
+                    <table class="tx-cart-table">
+                      <thead>
+                        <tr>
+                          <th>Producto</th>
+                          <th>Cant.</th>
+                          <th>IVA</th>
+                          <th>Total</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody id="tx-cart-body"></tbody>
+                      <tfoot>
+                        <tr>
+                          <td colspan="3" style="text-align: right; font-weight: 700;">Total Venta:</td>
+                          <td id="tx-cart-grand-total" style="font-weight: 800; color: var(--accent);">—</td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+
+                  <div class="form-row" style="margin-top: 1rem;">
+                    <label for="tx-notes">Notas / Cliente (Válido para todo el pedido)</label>
+                    <input id="tx-notes" type="text" placeholder="Ej: Factura #123, Venta mostrador..." />
+                  </div>
+
+                  <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="tx-submit">Registrar VentaCompleta</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="tx-cancel-edit" hidden>Cancelar Edición</button>
+                  </div>
+                </form>
+
+                <div class="tx-history-header" style="margin-top: 3.5rem; margin-bottom: 1.5rem;">
+                  <h4 class="subsection-title">Historial de Movimientos</h4>
+                  
+                  <div class="tx-controls-inline">
+                    <div class="date-filter">
+                      <div class="date-input-group">
+                        <label for="tx-filter-start">Desde:</label>
+                        <input type="date" id="tx-filter-start" />
+                      </div>
+                      <div class="date-input-group">
+                        <label for="tx-filter-end">Hasta:</label>
+                        <input type="date" id="tx-filter-end" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="transactions-loading" class="section-loading" hidden>
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span>Cargando transacciones…</span>
+                </div>
+                <div class="tx-table-wrap">
+                  <table class="tx-table" id="transactions-table" hidden>
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Parte</th>
+                        <th>Nombre</th>
+                        <th>Cant.</th>
+                        <th>IVA</th>
+                        <th>Notas</th>
+                        <th>Total</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody id="transactions-tbody"></tbody>
+                  </table>
+                </div>
+                <p id="transactions-empty" class="empty-hint" hidden>No hay movimientos en este rango.</p>
+              </div>
+
+              <!-- ADMIN: ADD/EDIT FORM -->
+              <div id="admin-section-form" class="admin-section">
+                <h3 id="form-title" class="subsection-title">Añadir o editar repuesto</h3>
+                <p class="section-intro">Crea nuevos productos o actualiza los existentes.</p>
+                <form id="part-form" class="form-grid">
+                  <input type="hidden" id="field-id" />
+                  <div class="form-row--grid">
+                    <div class="form-row">
+                      <label for="field-part_number">Número de parte *</label>
+                      <input id="field-part_number" type="text" required />
+                    </div>
+                    <div class="form-row">
+                      <label for="field-name">Nombre *</label>
+                      <input id="field-name" type="text" required />
+                    </div>
+                  </div>
+                  <div class="form-row--grid">
+                    <div class="form-row">
+                      <label for="field-category">Categoría</label>
+                      <select id="field-category">
+                        <option value="">— Seleccionar —</option>
+                        <option value="Frenos">Frenos</option>
+                        <option value="Motor">Motor</option>
+                        <option value="Suspensión">Suspensión</option>
+                        <option value="Eléctrico">Eléctrico</option>
+                        <option value="Filtros">Filtros</option>
+                        <option value="Escape">Escape</option>
+                        <option value="Neumáticos">Neumáticos</option>
+                        <option value="Cauchos de puerta">Cauchos de puerta</option>
+                        <option value="Luces">Luces</option>
+                        <option value="Focos">Focos</option>
+                        <option value="Otro">Otro</option>
+                      </select>
+                    </div>
+                    <div class="form-row">
+                      <label for="field-brand">Marca</label>
+                      <input id="field-brand" type="text" />
+                    </div>
+                  </div>
+                  <div class="form-row--grid">
+                    <div class="form-row">
+                      <label for="field-price">Precio Público</label>
+                      <input id="field-price" type="number" step="0.01" min="0" />
+                    </div>
+                    <div class="form-row">
+                      <label for="field-stock_quantity">Stock Actual</label>
+                      <input id="field-stock_quantity" type="number" min="0" value="0" />
+                    </div>
+                    <div class="form-row">
+                      <label for="field-low_stock_threshold">Alerta Stock Bajo</label>
+                      <input id="field-low_stock_threshold" type="number" min="0" value="5" />
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <label for="field-description">Descripción / Notas internas</label>
+                    <textarea id="field-description" rows="2"></textarea>
+                  </div>
+                  
+                  <div class="form-group-title">Especificaciones para el Catálogo</div>
+                  <div class="form-row--grid">
+                    <div class="form-row">
+                      <label for="field-dimensions">Dimensiones</label>
+                      <input id="field-dimensions" type="text" placeholder="Ej: 24 x 5 x 2 cm" />
+                    </div>
+                    <div class="form-row">
+                      <label for="field-voltage">Voltaje</label>
+                      <input id="field-voltage" type="text" placeholder="12V / 24V" />
+                    </div>
+                  </div>
+                  
+                  <div class="form-row--grid">
+                    <div class="form-row">
+                      <label for="field-led_count">Cant. LEDs</label>
+                      <input id="field-led_count" type="number" min="0" placeholder="Ej: 12" />
+                    </div>
+                    <div class="form-row">
+                      <label for="field-weight_ref">Peso / Ref (kg)</label>
+                      <input id="field-weight_ref" type="number" step="0.01" min="0" placeholder="Ej: 0.5" />
+                    </div>
+                  </div>
+
+                  <div class="form-row--grid" style="margin-top: 1rem;">
+                    <div class="form-row">
+                      <label>Color de Lente</label>
+                      <div class="checkbox-group">
+                        <label><input type="checkbox" name="lens_colors" value="Ámbar"> Ámbar</label>
+                        <label><input type="checkbox" name="lens_colors" value="Rojo"> Rojo</label>
+                        <label><input type="checkbox" name="lens_colors" value="Blanco"> Blanco</label>
+                        <label><input type="checkbox" name="lens_colors" value="Cristal"> Cristal</label>
+                        <label><input type="checkbox" name="lens_colors" value="Humo"> Humo</label>
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <label>Color de LED</label>
+                      <div class="checkbox-group">
+                        <label><input type="checkbox" name="led_colors" value="Blanco"> Blanco</label>
+                        <label><input type="checkbox" name="led_colors" value="Cálido"> Cálido</label>
+                        <label><input type="checkbox" name="led_colors" value="Rojo"> Rojo</label>
+                        <label><input type="checkbox" name="led_colors" value="Ámbar"> Ámbar</label>
+                        <label><input type="checkbox" name="led_colors" value="Multicolor"> RGB</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-row" style="margin-top: 1.5rem;">
+                    <label for="field-features">Características / Ventajas (una por línea)</label>
+                    <textarea id="field-features" rows="3" placeholder="Ej: Resistente al agua&#10;Larga vida útil"></textarea>
+                  </div>
+                  
+                  <div class="form-row">
+                    <label for="field-image">Imagen (Subir desde PC)</label>
+                    <input id="field-image" type="file" accept="image/*" />
+                    <div id="image-preview-container" class="image-preview-container" hidden>
+                      <img id="image-preview" src="" alt="Vista previa" />
+                      <button type="button" id="remove-image" class="btn btn-sm btn-danger">Eliminar</button>
+                    </div>
+                    <input type="hidden" id="field-image_url" />
+                  </div>
+
+                  <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="form-submit-btn">Guardar Repuesto</button>
+                    <button type="button" class="btn btn-ghost" id="form-cancel-btn">Cancelar</button>
+                    <button type="button" class="btn btn-ghost" id="form-reset-btn">Limpiar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </section>
         </main>
       </div>
     </div>
 
-    <footer class="site-footer">
-      <p>© MZ Cauchos & Accesorios — Catálogo interno. Datos almacenados protegidos.</p>
-    </footer>
-
-    <div id="global-loading" class="loading-overlay" aria-hidden="true" role="status">
-      <span class="spinner" aria-label="Cargando"></span>
-    </div>
-
-    <div id="toast-container" class="toast-container" aria-live="polite"></div>
-
-    <div
-      id="admin-portal"
-      class="admin-portal"
-      hidden
-      aria-hidden="true"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="admin-portal-title"
-    >
-      <div class="admin-portal__backdrop" id="admin-backdrop" tabindex="-1"></div>
-      <div class="admin-portal__sheet">
-        <div class="admin-portal__top">
-          <h2 id="admin-portal-title" class="admin-portal__title">Administración</h2>
-          <div class="admin-portal__top-actions">
-            <button type="button" class="btn btn-ghost btn-sm" id="admin-logout" hidden>
-              Cerrar sesión
-            </button>
-            <button type="button" class="admin-close-btn" id="admin-close" aria-label="Cerrar panel">
-              ×
-            </button>
+    <!-- AUTH MODAL -->
+    <div id="auth-modal" class="auth-modal">
+      <div class="auth-modal__backdrop" id="auth-backdrop"></div>
+      <div class="auth-modal__content">
+        <button type="button" class="auth-modal__close" id="auth-close">×</button>
+        <p id="admin-auth-intro" class="admin-auth-intro"></p>
+        
+        <form id="admin-setup-form" class="admin-auth-form" hidden>
+          <h2 style="margin-top:0">Configurar Administrador</h2>
+          <p style="font-size:0.875rem; color:var(--ink-muted); margin-bottom:1.5rem">
+            Este sitio solo admite un administrador único.
+          </p>
+          <div class="form-row">
+            <label for="setup-email">Correo Electrónico</label>
+            <input id="setup-email" type="email" required />
           </div>
-        </div>
-
-        <div id="admin-auth" class="admin-auth">
-          <p id="admin-auth-intro" class="admin-auth-intro"></p>
-          <form id="admin-setup-form" class="admin-auth-form" hidden>
-            <p class="admin-auth-lead">
-              Crea la única cuenta de administrador: este sitio admite <strong>un solo usuario</strong>.
-            </p>
-            <div class="form-row">
-              <label for="setup-email">Correo *</label>
-              <input id="setup-email" name="email" type="email" autocomplete="email" required />
-            </div>
-            <div class="form-row">
-              <label for="setup-password">Contraseña *</label>
-              <input
-                id="setup-password"
-                name="password"
-                type="password"
-                autocomplete="new-password"
-                required
-                minlength="8"
-              />
-            </div>
-            <div class="form-row">
-              <label for="setup-password2">Confirmar contraseña *</label>
-              <input
-                id="setup-password2"
-                name="password2"
-                type="password"
-                autocomplete="new-password"
-                required
-                minlength="8"
-              />
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary" id="setup-submit">Crear administrador</button>
-            </div>
-          </form>
-          <form id="admin-login-form" class="admin-auth-form" hidden>
-            <div class="form-row">
-              <label for="login-email">Correo</label>
-              <input id="login-email" name="email" type="email" autocomplete="username" required />
-            </div>
-            <div class="form-row">
-              <label for="login-password">Contraseña</label>
-              <input
-                id="login-password"
-                name="password"
-                type="password"
-                autocomplete="current-password"
-                required
-              />
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary" id="login-submit">Entrar</button>
-            </div>
-          </form>
-        </div>
-
-        <div id="admin-workspace" class="admin-workspace" hidden>
-          <nav class="admin-nav" aria-label="Administración">
-            <button type="button" class="admin-nav-btn active" data-admin-section="catalog">
-              Catálogo (editar)
-            </button>
-            <button type="button" class="admin-nav-btn" data-admin-section="transactions">
-              Transacciones
-            </button>
-            <button type="button" class="admin-nav-btn" data-admin-section="form">
-              Añadir / Editar
-            </button>
-          </nav>
-          <div class="admin-workspace__scroll">
-            <section id="admin-section-catalog" class="admin-section admin-section-panel">
-              <h3 class="admin-section-title">Catálogo — edición</h3>
-              <p class="section-intro">
-                Desde aquí puedes editar o eliminar repuestos. El catálogo público no muestra estos botones.
-              </p>
-              <div id="admin-catalog-loading" class="section-loading" hidden>
-                <span class="spinner" aria-hidden="true"></span>
-                <span>Cargando…</span>
-              </div>
-              <div id="admin-catalog-grid" class="card-grid"></div>
-              <p id="admin-catalog-empty" class="empty-hint" hidden>No hay repuestos registrados.</p>
-            </section>
-            <section id="admin-section-transactions" class="admin-section admin-section-panel">
-              <h3 class="admin-section-title" id="tx-title">Transacciones</h3>
-              <p class="section-intro">
-                Registra una venta o salida de stock: se guarda el movimiento y el inventario se actualiza al instante.
-              </p>
-              <form id="transaction-form" class="form-grid tx-form">
-                <div class="form-row">
-                  <label for="tx-part">Repuesto *</label>
-                  <select id="tx-part" required>
-                    <option value="">— Selecciona un repuesto con stock —</option>
-                  </select>
-                </div>
-                <div class="form-row">
-                  <label for="tx-qty">Cantidad *</label>
-                  <input id="tx-qty" type="number" min="1" value="1" required />
-                  <span id="tx-stock-hint" class="field-hint" aria-live="polite"></span>
-                </div>
-                <div class="form-row">
-                  <label for="tx-notes">Notas (opcional)</label>
-                  <input id="tx-notes" type="text" placeholder="Cliente, factura, etc." maxlength="500" />
-                </div>
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-primary" id="tx-submit">Registrar transacción</button>
-                </div>
-              </form>
-              <h4 class="subsection-title">Historial reciente</h4>
-              <div id="transactions-loading" class="section-loading" hidden>
-                <span class="spinner" aria-hidden="true"></span>
-                <span>Cargando transacciones…</span>
-              </div>
-              <div class="tx-table-wrap">
-                <table class="tx-table" id="transactions-table" hidden>
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Nº parte</th>
-                      <th>Nombre</th>
-                      <th>Cant.</th>
-                      <th>Total</th>
-                      <th>Notas</th>
-                    </tr>
-                  </thead>
-                  <tbody id="transactions-tbody"></tbody>
-                </table>
-              </div>
-              <p id="transactions-empty" class="empty-hint" hidden>No hay transacciones registradas.</p>
-            </section>
-            <section id="admin-section-form" class="admin-section admin-section-panel">
-              <h3 class="admin-section-title" id="form-title">Añadir o editar repuesto</h3>
-              <form id="part-form" class="form-grid">
-                <input type="hidden" id="field-id" name="id" />
-                <div class="form-row">
-                  <label for="field-part_number">Número de parte *</label>
-                  <input
-                    id="field-part_number"
-                    name="part_number"
-                    type="text"
-                    required
-                    autocomplete="off"
-                  />
-                </div>
-                <div class="form-row">
-                  <label for="field-name">Nombre *</label>
-                  <input id="field-name" name="name" type="text" required />
-                </div>
-                <div class="form-row">
-                  <label for="field-category">Categoría</label>
-                  <select id="field-category" name="category">
-                    <option value="">— Seleccionar —</option>
-                    <option value="Frenos">Frenos</option>
-                    <option value="Motor">Motor</option>
-                    <option value="Suspensión">Suspensión</option>
-                    <option value="Eléctrico">Eléctrico</option>
-                    <option value="Filtros">Filtros</option>
-                    <option value="Escape">Escape</option>
-                    <option value="Neumáticos">Neumáticos</option>
-                    <option value="Cauchos de puerta">Cauchos de puerta</option>
-                    <option value="Luces">Luces</option>
-                    <option value="Focos">Focos</option>
-                    <option value="Otro">Otro</option>
-                  </select>
-                </div>
-                <div class="form-row">
-                  <label for="field-brand">Marca</label>
-                  <input id="field-brand" name="brand" type="text" />
-                </div>
-                <div class="form-row">
-                  <label for="field-price">Precio</label>
-                  <input id="field-price" name="price" type="number" step="0.01" min="0" />
-                </div>
-                <div class="form-row">
-                  <label for="field-stock_quantity">Cantidad en stock</label>
-                  <input id="field-stock_quantity" name="stock_quantity" type="number" min="0" value="0" />
-                </div>
-                <div class="form-row">
-                  <label for="field-low_stock_threshold">Umbral de stock bajo</label>
-                  <input
-                    id="field-low_stock_threshold"
-                    name="low_stock_threshold"
-                    type="number"
-                    min="0"
-                    value="5"
-                  />
-                </div>
-                <div class="form-row">
-                  <label for="field-description">Descripción corta</label>
-                  <textarea id="field-description" name="description" rows="2"></textarea>
-                </div>
-                <div class="form-group-title">Especificaciones Técnicas (Catálogo)</div>
-                <div class="form-row--grid">
-                  <div class="form-row">
-                    <label for="field-dimensions">Dimensiones (ej: 24 x 5 x 2.4 cm)</label>
-                    <input id="field-dimensions" name="dimensions" type="text" placeholder="Largo x Ancho x Alto" />
-                  </div>
-                  <div class="form-row">
-                    <label for="field-voltage">Voltaje (ej: 12V / 24V)</label>
-                    <input id="field-voltage" name="voltage" type="text" placeholder="Rango de voltaje" />
-                  </div>
-                  <div class="form-row">
-                    <label for="field-led_count">Cantidad de LEDs</label>
-                    <input id="field-led_count" name="led_count" type="number" min="0" />
-                  </div>
-                  <div class="form-row">
-                    <label for="field-weight_ref">Referencia / Peso (Icono báscula)</label>
-                    <input id="field-weight_ref" name="weight_ref" type="number" min="0" />
-                  </div>
-                </div>
-                <div class="form-row">
-                  <label for="field-features">Características (una por línea, ej: Soporte ABS Cromado)</label>
-                  <textarea id="field-features" name="features" rows="4" placeholder="Soporte en ABS Cromado&#10;Lente en Policarbonato&#10;Lámpara resinada"></textarea>
-                </div>
-                <div class="form-row checkboxes-group">
-                  <label>Colores de Lente disponibles</label>
-                  <div class="checkboxes-wrap">
-                    <label><input type="checkbox" name="lens_colors" value="Red" /> Rojo</label>
-                    <label><input type="checkbox" name="lens_colors" value="Amber" /> Ámbar</label>
-                    <label><input type="checkbox" name="lens_colors" value="Clear" /> Blanco/Transp.</label>
-                  </div>
-                </div>
-                <div class="form-row checkboxes-group">
-                  <label>Colores de LED disponibles</label>
-                  <div class="checkboxes-wrap">
-                    <label><input type="checkbox" name="led_colors" value="Red" /> Rojo</label>
-                    <label><input type="checkbox" name="led_colors" value="Amber" /> Ámbar</label>
-                    <label><input type="checkbox" name="led_colors" value="White" /> Blanco</label>
-                    <label><input type="checkbox" name="led_colors" value="Blue" /> Azul</label>
-                    <label><input type="checkbox" name="led_colors" value="Green" /> Verde</label>
-                  </div>
-                </div>
-                <div class="form-row image-upload-row">
-                  <label for="field-image">Imagen del producto (Desde tu computador)</label>
-                  <div class="image-upload-controls">
-                    <input id="field-image" type="file" accept="image/*" />
-                    <div id="image-preview-container" class="image-preview-container" hidden>
-                      <img id="image-preview" src="" alt="Vista previa" />
-                      <button type="button" id="remove-image" class="btn btn-sm btn-danger">Quitar</button>
-                    </div>
-                  </div>
-                  <input type="hidden" id="field-image_url" name="image_url" />
-                </div>
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-primary" id="form-submit-btn">Guardar</button>
-                  <button type="button" class="btn btn-ghost" id="form-reset-btn">Limpiar formulario</button>
-                </div>
-              </form>
-            </section>
+          <div class="form-row">
+            <label for="setup-password">Contraseña (Mín. 8 caracteres)</label>
+            <input id="setup-password" type="password" required minlength="8" />
           </div>
-        </div>
+          <div class="form-row">
+            <label for="setup-password2">Confirmar Contraseña</label>
+            <input id="setup-password2" type="password" required />
+          </div>
+          <div class="form-actions" style="margin-top:1.5rem">
+            <button type="submit" class="btn btn-primary btn-block">Crear Cuenta y Entrar</button>
+            <button type="button" id="toggle-to-login" class="btn btn-ghost btn-sm btn-block">Ya tengo cuenta, iniciar sesión</button>
+          </div>
+        </form>
+
+        <form id="admin-login-form" class="admin-auth-form" hidden>
+          <h2 style="margin-top:0">Iniciar Sesión</h2>
+          <div class="form-row">
+            <label for="login-email">Correo</label>
+            <input id="login-email" type="email" required />
+          </div>
+          <div class="form-row">
+            <label for="login-password">Contraseña</label>
+            <input id="login-password" type="password" required />
+          </div>
+          <div class="form-actions" style="margin-top:1.5rem">
+            <button type="submit" class="btn btn-primary btn-block">Entrar al Sistema</button>
+            <button type="button" id="toggle-to-setup" class="btn btn-ghost btn-sm btn-block" hidden>Volver al registro</button>
+          </div>
+        </form>
       </div>
     </div>
 
+    <div id="toast-container" class="toast-container"></div>
     <script type="module" src="app.js"></script>
   </body>
 </html>
